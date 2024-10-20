@@ -3,14 +3,14 @@ import "@std/dotenv/load";
 import coap from "coap";
 
 const VALID_API_KEY = process.env.API_KEY;
+const COAP_OPTION_API_KEY = "2048";
 
-const observers: coap.OutgoingMessage[] = [];
+const observers: { [key: string]: coap.OutgoingMessage } = {};
 
 const coapServer = coap.createServer((req, res) => {
   console.log("CoAP client connected from", req.rsinfo.address, req.rsinfo.port);
 
-  // Check for the API_KEY in the custom option 2048
-  const apiKeyOption = req.options.find((opt) => opt.name === 2048);
+  const apiKeyOption = req.options.find((opt) => opt.name === COAP_OPTION_API_KEY);
   const apiKey = apiKeyOption ? apiKeyOption.value.toString() : null;
 
   if (apiKey !== VALID_API_KEY) {
@@ -22,7 +22,7 @@ const coapServer = coap.createServer((req, res) => {
   if (req.headers["Observe"] === 0) {
     console.log("Client is observing the resource");
 
-    observers.push(res);
+    observers[`${req.rsinfo.address}:${req.rsinfo.port}`] = res;
 
     res.setOption("Observe", 1);
   } else {
@@ -37,7 +37,7 @@ coapServer.listen(5683, () => {
 function notifyObservers(message: string) {
   console.log(`Notifying observers: ${message}`);
 
-  observers.forEach((res) => {
+  Object.values(observers).forEach((res) => {
     res.setOption("Observe", 1); // Continue signaling this is an observed resource
     res.write(message);
   });
