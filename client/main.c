@@ -3,7 +3,7 @@
 #include <string.h>
 #include <time.h>
 #include <coap2/coap.h>
-#include <arpa/inet.h>  // For inet_pton
+#include <arpa/inet.h>
 
 #include "DEV_Config.h"
 #include "GUI_Paint.h"
@@ -11,10 +11,12 @@
 #include "ImageData.h"
 #include "Debug.h"
 #include "fonts.h"
-
 #include "EPD_2in13_V4.h"
 
 #define MAX_INPUT_SIZE 256
+
+// Global variable for the e-paper display image buffer
+UBYTE *BlackImage = NULL;
 
 int check_for_enter_press() {
     fd_set read_fds;
@@ -34,19 +36,16 @@ int check_for_enter_press() {
     return 0;
 }
 
-// Function to display the CoAP message on the screen
-void display_text(UBYTE *BlackImage, const char *text) {
-    Paint_ClearWindows(10, 40, 10 + Font16.Width * 120, 40 + Font16.Height, WHITE);
+// Function to display text on the e-paper screen
+void display_text(const char *text) {
+    Paint_ClearWindows(10, 40, 10 + Font16.Width * strlen(text), 40 + Font16.Height, WHITE);
     Paint_DrawString_EN(10, 40, text, &Font16, WHITE, BLACK);
     EPD_2in13_V4_Display_Partial(BlackImage);
 }
 
 // CoAP response handler
-void handle_coap_response(struct coap_context_t *ctx,
-                          const coap_endpoint_t *local_interface,
-                          const coap_address_t *remote,
-                          coap_pdu_t *sent,
-                          coap_pdu_t *received,
+void handle_coap_response(coap_context_t *ctx, coap_session_t *session,
+                          coap_pdu_t *sent, coap_pdu_t *received,
                           const coap_tid_t id) {
     size_t size;
     unsigned char *data;
@@ -55,55 +54,54 @@ void handle_coap_response(struct coap_context_t *ctx,
         char response_text[MAX_INPUT_SIZE];
         snprintf(response_text, sizeof(response_text), "%.*s", (int)size, data);
         printf("Received CoAP response: %s\n", response_text);
-        // Replace NULL with BlackImage if available
-        display_text(NULL, response_text);
+        display_text(response_text);
     } else {
         printf("No payload received in CoAP response.\n");
     }
 }
 
-void send_coap_request(coap_context_t *ctx, coap_address_t *dst_addr, coap_uri_t *uri) {
-    coap_pdu_t *request;
-    coap_tid_t tid;
-    unsigned char opt_buf[40];
-    size_t opt_buf_len;
-    coap_list_t *options = NULL;
-
-    // Create a CoAP GET request PDU
-    request = coap_pdu_init(COAP_MESSAGE_CON,
-                            COAP_REQUEST_GET,
-                            coap_new_message_id(ctx),
-                            coap_session_max_pdu_size(coap_session_get_default(ctx)));
-
+// Simplified function to send a CoAP GET request
+void send_coap_request(coap_session_t *session) {
+    coap_pdu_t *request = coap_new_pdu(session);
     if (!request) {
         fprintf(stderr, "Failed to create CoAP request PDU.\n");
         return;
     }
 
-    // Build the URI options
-    coap_split_uri(uri->path.s, uri->path.length, &options);
+    request->type = COAP_MESSAGE_CON;
+    request->code = COAP_REQUEST_GET;
+    request->tid = coap_new_message_id(session);
 
-    // Add URI options to the request
-    coap_add_optlist_pdu(request, options);
-
-    // Send the request
-    tid = coap_send_confirmed(ctx, coap_session_get_default(ctx), request);
-    if (tid == COAP_INVALID_TID) {
-        fprintf(stderr, "Error sending CoAP request.\n");
-    }
-
-    // Free the options
-    coap_delete_optlist(options);
+    coap_send(session, request);
 }
 
 void coap_client_loop(coap_context_t *ctx) {
     printf("Press ENTER to exit...\r\n");
     while (1) {
-        coap_run_once(ctx, 1000); // Wait for up to 1000ms
+        coap_run_once(ctx, 1000);
         if (check_for_enter_press()) {
             break;
         }
+        display_clock();
     }
+}
+
+// Function to display the clock
+void display_clock() {
+    static PAINT_TIME sPaint_time;
+    time_t rawtime;
+    struct tm *timeinfo;
+
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+    sPaint_time.Hour = timeinfo->tm_hour;
+    sPaint_time.Min = timeinfo->tm_min;
+    sPaint_time.Sec = timeinfo->tm_sec;
+
+    Paint_ClearWindows(170, 0, 170 + Font16.Width * 7, 80 + Font16.Height, WHITE);
+    Paint_DrawTime(170, 0, &sPaint_time, &Font16, WHITE, BLACK);
+
+    EPD_2in13_V4_Display_Partial(BlackImage);
 }
 
 int main(void) {
@@ -115,8 +113,10 @@ int main(void) {
     EPD_2in13_V4_Clear();
     DEV_Delay_ms(100);
 
-    UWORD Imagesize = ((EPD_2in13_V4_WIDTH % 8 == 0) ? (EPD_2in13_V4_WIDTH / 8) : (EPD_2in13_V4_WIDTH / 8 + 1)) * EPD_2in13_V4_HEIGHT;
-    UBYTE *BlackImage = (UBYTE *)malloc(Imagesize);
+    UWORD Imagesize = ((EPD_2in13_V4_WIDTH % 8 == 0)
+                           ? (EPD_2in13_V4_WIDTH / 8)
+                           : (EPD_2in13_V4_WIDTH / 8 + 1)) * EPD_2in13_V4_HEIGHT;
+    BlackImage = (UBYTE *)malloc(Imagesize);
     if (!BlackImage) {
         DEV_Module_Exit();
         return -1;
@@ -126,7 +126,7 @@ int main(void) {
     Paint_SelectImage(BlackImage);
     Paint_Clear(WHITE);
 
-    display_text(BlackImage, "Connecting...");
+    display_text("Connecting...");
 
     // Get CoAP server URI from environment variable
     const char *server_uri = getenv("COAP_SERVER_URI");
@@ -158,14 +158,13 @@ int main(void) {
         return -1;
     }
 
-    // Set up the destination address
+    // Create a CoAP session
     coap_address_t dst_addr;
     coap_address_init(&dst_addr);
 
     dst_addr.addr.sin.sin_family = AF_INET;
     dst_addr.addr.sin.sin_port = htons(uri.port);
 
-    // Convert the host string to network address
     char host[256];
     snprintf(host, sizeof(host), "%.*s", (int)uri.host.length, uri.host.s);
 
@@ -177,8 +176,8 @@ int main(void) {
         return -1;
     }
 
-    // Create CoAP endpoint
-    if (!coap_new_client_session(ctx, NULL, &dst_addr, COAP_PROTO_UDP)) {
+    coap_session_t *session = coap_new_client_session(ctx, NULL, &dst_addr, COAP_PROTO_UDP);
+    if (!session) {
         fprintf(stderr, "Failed to create CoAP client session.\n");
         coap_free_context(ctx);
         free(BlackImage);
@@ -190,7 +189,7 @@ int main(void) {
     coap_register_response_handler(ctx, handle_coap_response);
 
     // Send a CoAP request to the server
-    send_coap_request(ctx, &dst_addr, &uri);
+    send_coap_request(session);
 
     // Run the CoAP client loop
     coap_client_loop(ctx);
@@ -202,6 +201,7 @@ int main(void) {
     EPD_2in13_V4_Sleep();
     DEV_Module_Exit();
 
+    coap_session_release(session);
     coap_free_context(ctx);
     return 0;
 }
