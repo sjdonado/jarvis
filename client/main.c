@@ -3,6 +3,7 @@
 #include <string.h>
 #include <time.h>
 #include <coap2/coap.h>
+#include <arpa/inet.h>  // For inet_pton
 
 #include "DEV_Config.h"
 #include "GUI_Paint.h"
@@ -41,50 +42,67 @@ void display_text(UBYTE *BlackImage, const char *text) {
 }
 
 // CoAP response handler
-void handle_coap_response(coap_context_t *ctx, coap_session_t *session,
-                          coap_pdu_t *sent, coap_pdu_t *received,
+void handle_coap_response(struct coap_context_t *ctx,
+                          const coap_endpoint_t *local_interface,
+                          const coap_address_t *remote,
+                          coap_pdu_t *sent,
+                          coap_pdu_t *received,
                           const coap_tid_t id) {
     size_t size;
     unsigned char *data;
 
-    // Extract the payload from the CoAP response
     if (coap_get_data(received, &size, &data)) {
         char response_text[MAX_INPUT_SIZE];
         snprintf(response_text, sizeof(response_text), "%.*s", (int)size, data);
         printf("Received CoAP response: %s\n", response_text);
-
-        // Display the response on the e-paper screen
-        display_text(NULL, response_text); // Passing NULL as BlackImage temporarily
+        // Replace NULL with BlackImage if available
+        display_text(NULL, response_text);
     } else {
         printf("No payload received in CoAP response.\n");
     }
 }
 
-void send_coap_request(coap_context_t *ctx, coap_session_t *session) {
+void send_coap_request(coap_context_t *ctx, coap_address_t *dst_addr, coap_uri_t *uri) {
     coap_pdu_t *request;
-    request = coap_new_pdu(session);
+    coap_tid_t tid;
+    unsigned char opt_buf[40];
+    size_t opt_buf_len;
+    coap_list_t *options = NULL;
+
+    // Create a CoAP GET request PDU
+    request = coap_pdu_init(COAP_MESSAGE_CON,
+                            COAP_REQUEST_GET,
+                            coap_new_message_id(ctx),
+                            coap_session_max_pdu_size(coap_session_get_default(ctx)));
+
     if (!request) {
         fprintf(stderr, "Failed to create CoAP request PDU.\n");
         return;
     }
 
-    // Create a CoAP GET request
-    coap_pdu_set_type(request, COAP_MESSAGE_CON);
-    coap_pdu_set_code(request, COAP_REQUEST_GET);
-    coap_add_option(request, COAP_OPTION_URI_PATH, 3, (const unsigned char *)"epd");
+    // Build the URI options
+    coap_split_uri(uri->path.s, uri->path.length, &options);
+
+    // Add URI options to the request
+    coap_add_optlist_pdu(request, options);
 
     // Send the request
-    coap_send(session, request);
+    tid = coap_send_confirmed(ctx, coap_session_get_default(ctx), request);
+    if (tid == COAP_INVALID_TID) {
+        fprintf(stderr, "Error sending CoAP request.\n");
+    }
+
+    // Free the options
+    coap_delete_optlist(options);
 }
 
 void coap_client_loop(coap_context_t *ctx) {
     printf("Press ENTER to exit...\r\n");
     while (1) {
-        coap_io_process(ctx, COAP_IO_WAIT);
+        coap_run_once(ctx, 1000); // Wait for up to 1000ms
         if (check_for_enter_press()) {
             break;
         }
-        DEV_Delay_ms(1000);
     }
 }
 
@@ -97,10 +115,9 @@ int main(void) {
     EPD_2in13_V4_Clear();
     DEV_Delay_ms(100);
 
-    // Initialize e-paper display buffer
     UWORD Imagesize = ((EPD_2in13_V4_WIDTH % 8 == 0) ? (EPD_2in13_V4_WIDTH / 8) : (EPD_2in13_V4_WIDTH / 8 + 1)) * EPD_2in13_V4_HEIGHT;
-    UBYTE *BlackImage;
-    if ((BlackImage = (UBYTE *)malloc(Imagesize)) == NULL) {
+    UBYTE *BlackImage = (UBYTE *)malloc(Imagesize);
+    if (!BlackImage) {
         DEV_Module_Exit();
         return -1;
     }
@@ -122,11 +139,46 @@ int main(void) {
 
     printf("Connecting to CoAP server: %s\n", server_uri);
 
-    // Initialize CoAP context and session
+    // Initialize CoAP context
     coap_context_t *ctx = coap_new_context(NULL);
-    coap_session_t *session = coap_new_client_session(ctx, NULL, coap_address_init(), COAP_PROTO_UDP);
+    if (!ctx) {
+        fprintf(stderr, "Failed to create CoAP context.\n");
+        free(BlackImage);
+        DEV_Module_Exit();
+        return -1;
+    }
 
-    if (!session) {
+    // Parse the CoAP URI
+    coap_uri_t uri;
+    if (coap_split_uri((const unsigned char *)server_uri, strlen(server_uri), &uri) == -1) {
+        fprintf(stderr, "Invalid CoAP URI.\n");
+        coap_free_context(ctx);
+        free(BlackImage);
+        DEV_Module_Exit();
+        return -1;
+    }
+
+    // Set up the destination address
+    coap_address_t dst_addr;
+    coap_address_init(&dst_addr);
+
+    dst_addr.addr.sin.sin_family = AF_INET;
+    dst_addr.addr.sin.sin_port = htons(uri.port);
+
+    // Convert the host string to network address
+    char host[256];
+    snprintf(host, sizeof(host), "%.*s", (int)uri.host.length, uri.host.s);
+
+    if (inet_pton(AF_INET, host, &dst_addr.addr.sin.sin_addr) <= 0) {
+        fprintf(stderr, "Invalid server address: %s\n", host);
+        coap_free_context(ctx);
+        free(BlackImage);
+        DEV_Module_Exit();
+        return -1;
+    }
+
+    // Create CoAP endpoint
+    if (!coap_new_client_session(ctx, NULL, &dst_addr, COAP_PROTO_UDP)) {
         fprintf(stderr, "Failed to create CoAP client session.\n");
         coap_free_context(ctx);
         free(BlackImage);
@@ -138,12 +190,12 @@ int main(void) {
     coap_register_response_handler(ctx, handle_coap_response);
 
     // Send a CoAP request to the server
-    send_coap_request(ctx, session);
+    send_coap_request(ctx, &dst_addr, &uri);
 
     // Run the CoAP client loop
     coap_client_loop(ctx);
 
-    printf("Turning off the screen...", server_uri);
+    printf("Turning off the screen...\n");
 
     free(BlackImage);
     EPD_2in13_V4_Clear();
