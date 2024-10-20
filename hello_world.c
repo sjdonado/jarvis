@@ -57,25 +57,20 @@ int main(void) {
     Paint_NewImage(BlackImage, EPD_2in13_V4_WIDTH, EPD_2in13_V4_HEIGHT, ROTATE_90, WHITE);
     Paint_SelectImage(BlackImage);
 
-    printf("Press ENTER to exit...\r\n");
+    Paint_Clear(WHITE);
 
-    int toggle = 0;  // Track background color
+    Paint_DrawString_EN(90, 15, "Hello world!", &Font16, BLACK, WHITE);
+    Paint_DrawNum(90, 60, 12345, &Font16, BLACK, WHITE);
+    Paint_DrawString_CN(90, 90, "ÄãºÃabc", &Font12CN, WHITE, BLACK);
+
+    EPD_2in13_V4_Display_Base(BlackImage);
+
+    printf("Press ENTER to exit...\r\n");
 
     while (1) {
         if (check_for_enter_press()) {
             break;  // Exit the loop if Enter is pressed
         }
-
-        Paint_Clear(toggle ? BLACK : WHITE);
-
-        Paint_DrawString_EN(140, 15, "Hello world!", &Font16, toggle ? WHITE : BLACK, toggle ? BLACK : WHITE);
-        Paint_DrawNum(140, 40, 12345, &Font16, toggle ? WHITE : BLACK, toggle ? BLACK : WHITE);
-        Paint_DrawString_CN(140, 60, "ÄãºÃabc", &Font12CN, toggle ? WHITE : BLACK, toggle ? BLACK : WHITE);
-
-        toggle = !toggle;
-
-	EPD_2in13_V4_Display_Base(BlackImage);
-        DEV_Delay_ms(10000);  // Wait for 10 seconds before toggle
     }
 
     // Cleanup before exiting
