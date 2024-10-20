@@ -14,6 +14,7 @@
 #include "EPD_2in13_V4.h"
 
 #define MAX_INPUT_SIZE 256
+#define BUFSIZE 128
 
 // Global variable for the e-paper display image buffer
 UBYTE *BlackImage = NULL;
@@ -43,26 +44,37 @@ void display_text(const char *text) {
     EPD_2in13_V4_Display_Partial(BlackImage);
 }
 
-// CoAP response handler
 void handle_coap_response(coap_context_t *ctx, coap_session_t *session,
                           coap_pdu_t *sent, coap_pdu_t *received,
                           const coap_tid_t id) {
     size_t size;
     unsigned char *data;
 
-    if (coap_get_data(received, &size, &data)) {
-        char response_text[MAX_INPUT_SIZE];
-        snprintf(response_text, sizeof(response_text), "%.*s", (int)size, data);
-        printf("Received CoAP response: %s\n", response_text);
-        display_text(response_text);
+    if (COAP_RESPONSE_CLASS(received->code) == 2) { // Check for 2.xx codes
+        if (coap_get_data(received, &size, &data)) {
+            char response_text[MAX_INPUT_SIZE];
+            snprintf(response_text, sizeof(response_text), "%.*s", (int)size, data);
+            printf("Received CoAP response: %s\n", response_text);
+            display_text(response_text);
+        } else {
+            printf("No payload received in CoAP response.\n");
+        }
     } else {
-        printf("No payload received in CoAP response.\n");
+        printf("Received CoAP error code: %d.%02d\n",
+               (received->code >> 5), received->code & 0x1F);
     }
 }
 
-// Simplified function to send a CoAP GET request
-void send_coap_request(coap_session_t *session) {
-    coap_pdu_t *request = coap_new_pdu(session);
+void send_coap_request(coap_session_t *session, coap_uri_t *uri) {
+    coap_pdu_t *request;
+    coap_optlist_t *optlist = NULL;
+    unsigned char _buf[BUFSIZE];
+    size_t _buf_len;
+    unsigned char observe = 0;
+    unsigned char buf[3];
+    size_t len;
+
+    request = coap_new_pdu(session);
     if (!request) {
         fprintf(stderr, "Failed to create CoAP request PDU.\n");
         return;
@@ -72,7 +84,39 @@ void send_coap_request(coap_session_t *session) {
     request->code = COAP_REQUEST_GET;
     request->tid = coap_new_message_id(session);
 
-    coap_send(session, request);
+    // Build the option list
+    // Add Uri-Path options
+    if (uri->path.length) {
+        const unsigned char *path = uri->path.s;
+        size_t path_len = uri->path.length;
+        while (path_len > 0) {
+            _buf_len = BUFSIZE;
+            int segment_len = coap_split_path(path, path_len, _buf, &_buf_len);
+            if (segment_len <= 0) break;
+            coap_insert_optlist(&optlist, coap_new_optlist(COAP_OPTION_URI_PATH, _buf_len, _buf));
+            path += segment_len;
+            path_len -= segment_len;
+        }
+    }
+
+    // Add Observe option
+    len = coap_encode_var_safe(buf, sizeof(buf), observe);
+    coap_insert_optlist(&optlist, coap_new_optlist(COAP_OPTION_OBSERVE, len, buf));
+
+    // Add options to request
+    if (coap_add_optlist_pdu(request, &optlist) != 1) {
+        fprintf(stderr, "Failed to add options to request.\n");
+        coap_delete_pdu(request);
+        coap_delete_optlist(optlist);
+        return;
+    }
+
+    // Send the request
+    if (coap_send(session, request) == COAP_INVALID_TID) {
+        fprintf(stderr, "Error sending CoAP request.\n");
+    }
+
+    coap_delete_optlist(optlist);
 }
 
 void coap_client_loop(coap_context_t *ctx) {
@@ -88,20 +132,24 @@ void coap_client_loop(coap_context_t *ctx) {
 
 // Function to display the clock
 void display_clock() {
-    static PAINT_TIME sPaint_time;
+    static time_t last_time = 0;
     time_t rawtime;
     struct tm *timeinfo;
+    PAINT_TIME sPaint_time;
 
     time(&rawtime);
-    timeinfo = localtime(&rawtime);
-    sPaint_time.Hour = timeinfo->tm_hour;
-    sPaint_time.Min = timeinfo->tm_min;
-    sPaint_time.Sec = timeinfo->tm_sec;
+    if (rawtime != last_time) {
+        last_time = rawtime;
+        timeinfo = localtime(&rawtime);
+        sPaint_time.Hour = timeinfo->tm_hour;
+        sPaint_time.Min = timeinfo->tm_min;
+        sPaint_time.Sec = timeinfo->tm_sec;
 
-    Paint_ClearWindows(170, 0, 170 + Font16.Width * 7, 80 + Font16.Height, WHITE);
-    Paint_DrawTime(170, 0, &sPaint_time, &Font16, WHITE, BLACK);
+        Paint_ClearWindows(170, 0, 170 + Font16.Width * 7, 80 + Font16.Height, WHITE);
+        Paint_DrawTime(170, 0, &sPaint_time, &Font16, WHITE, BLACK);
 
-    EPD_2in13_V4_Display_Partial(BlackImage);
+        EPD_2in13_V4_Display_Partial(BlackImage);
+    }
 }
 
 int main(void) {
@@ -188,8 +236,8 @@ int main(void) {
     // Set up response handler
     coap_register_response_handler(ctx, handle_coap_response);
 
-    // Send a CoAP request to the server
-    send_coap_request(session);
+    // Send a CoAP request with Observe option to the server
+    send_coap_request(session, &uri);
 
     // Run the CoAP client loop
     coap_client_loop(ctx);
