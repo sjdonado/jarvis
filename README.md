@@ -38,15 +38,28 @@ otherwise, run `sudo raspi-config` and enable Inerface Options > I4 and Interfac
 
 ## Run
 
+- Server
+```bash
+deno run dev
+```
+
+- Client
 ```bash
 sudo make clean && sudo make
-export COAP_SERVER_URI="coap://localhost:5683"
+export COAP_SERVER_URI="coap://<your-local-ip>:5683"
 ```
 
 ## Send a message
 ```bash
-echo "Connected!" | sudo nc -U /tmp/epd_socket
+curl --request POST \
+  --url http://localhost:8000/send \
+  --header 'content-type: application/json' \
+  --data '{
+  "message": "hello world :)"
+}'
 ```
+
+---
 
 1. Basic information:
 This routine has been verified using the e-paper Driver HAT module. 
