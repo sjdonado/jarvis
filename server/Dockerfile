@@ -7,6 +7,8 @@ WORKDIR /app
 
 USER deno
 
+COPY ./deno.lock ./deno.lock
+
 RUN deno install --frozen
 
 COPY . .

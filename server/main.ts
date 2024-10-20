@@ -1,8 +1,8 @@
-import { config } from "dotenv";
+import "@std/dotenv/load";
+
 import coap from "coap";
 
-const env = await config();
-const VALID_API_KEY = env.API_KEY;
+const VALID_API_KEY = process.env.API_KEY;
 
 const observers: coap.OutgoingMessage[] = [];
 
