@@ -16,7 +16,7 @@ endif
 
 # Target executable
 TARGET = epd
-SRC_FILE ?= test.c  # or main.c
+SRC_FILE ?= main.c
 
 # Define the source files required for the project
 OBJ_C = $(wildcard ${OBJ_C_EPD} ${DIR_GUI}/*.c ${SRC_FILE} ${DIR_FONTS}/*.c)
