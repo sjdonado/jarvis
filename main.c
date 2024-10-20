@@ -18,6 +18,26 @@
 #define SOCKET_PATH "/tmp/epd_socket"
 #define MAX_INPUT_SIZE 256
 
+int check_for_enter_press() {
+    fd_set read_fds;
+    struct timeval tv;
+    FD_ZERO(&read_fds);
+    FD_SET(STDIN_FILENO, &read_fds);
+
+    // Set a timeout of 0 seconds to make select non-blocking
+    tv.tv_sec = 0;
+    tv.tv_usec = 0;
+
+    // Check if there's input available on stdin (standard input)
+    if (select(STDIN_FILENO + 1, &read_fds, NULL, NULL, &tv) > 0) {
+        char buf[1];
+        if (read(STDIN_FILENO, buf, 1) > 0 && buf[0] == '\n') {
+            return 1;  // Enter key was pressed
+        }
+    }
+    return 0;  // No input or other key was pressed
+}
+
 int fd_socket;
 
 int create_unix_socket() {
@@ -56,7 +76,7 @@ int handle_socket_input(char *input_text) {
     ssize_t num_bytes = read(client_fd, input_text, MAX_INPUT_SIZE - 1);
     if (num_bytes > 0) {
         input_text[num_bytes] = '\0';
-	 printf("Received input: %s\n", input_text);
+	 printf("Received input: %s\r\n", input_text);
         close(client_fd);
         return 0;
     }
@@ -66,23 +86,38 @@ int handle_socket_input(char *input_text) {
 }
 
 void display_text(UBYTE *BlackImage, const char *text) {
-    Paint_ClearWindows(90, 40, 90 + Font16.Width * 120, 40 + Font16.Height, WHITE);
-    Paint_DrawString_EN(90, 40, text, &Font16, BLACK, WHITE);
-    EPD_2in13_V4_Display_Base(BlackImage);
+    Paint_ClearWindows(10, 40, 10 + Font16.Width * 120, 40 + Font16.Height, WHITE);
+    Paint_DrawString_EN(10, 40, text, &Font16, WHITE, BLACK);
+    EPD_2in13_V4_Display_Partial(BlackImage);
 }
 
 void display_clock(UBYTE *BlackImage) {
+    PAINT_TIME sPaint_time;
     time_t rawtime;
     struct tm *timeinfo;
-    char time_str[10];
+
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+    sPaint_time.Hour = timeinfo->tm_hour;
+    sPaint_time.Min = timeinfo->tm_min;
+    sPaint_time.Sec = timeinfo->tm_sec;
 
     while (1) {
-        time(&rawtime);
-        timeinfo = localtime(&rawtime);
-        strftime(time_str, sizeof(time_str), "%H:%M:%S", timeinfo);
+        sPaint_time.Sec = sPaint_time.Sec + 1;
+        if (sPaint_time.Sec == 60) {
+            sPaint_time.Min = sPaint_time.Min + 1;
+            sPaint_time.Sec = 0;
+            if (sPaint_time.Min == 60) {
+                sPaint_time.Hour = sPaint_time.Hour + 1;
+                sPaint_time.Min = 0;
+                if (sPaint_time.Hour == 24) {
+                    sPaint_time.Hour = 0;
+                }
+            }
+        }
 
-	Paint_ClearWindows(150, 80, 150 + Font12.Width * 7, 80 + Font12.Height, WHITE);
-        Paint_DrawTime(150, 80, &Paint_time, &Font12, WHITE, BLACK);
+        Paint_ClearWindows(180, 0, 180 + Font16.Width * 7, 80 + Font16.Height, WHITE);
+        Paint_DrawTime(180, 0, &sPaint_time, &Font16, WHITE, BLACK);
 
         EPD_2in13_V4_Display_Partial(BlackImage);
 
@@ -104,7 +139,11 @@ void display_clock(UBYTE *BlackImage) {
             }
         }
 
-        sleep(1);
+        if (check_for_enter_press()) {
+            break;
+        }
+
+        DEV_Delay_ms(1000);
     }
 }
 
@@ -126,6 +165,7 @@ int main(void) {
 
     Paint_NewImage(BlackImage, EPD_2in13_V4_WIDTH, EPD_2in13_V4_HEIGHT, ROTATE_90, WHITE);
     Paint_SelectImage(BlackImage);
+    Paint_Clear(WHITE);
 
     display_text(BlackImage, "Listening...");
 
@@ -135,6 +175,7 @@ int main(void) {
         return -1;
     }
 
+    printf("Press ENTER to exit...\r\n");
     display_clock(BlackImage);
 
     free(BlackImage);
