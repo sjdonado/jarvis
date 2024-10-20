@@ -87,7 +87,8 @@ void handle_coap_response(coap_context_t *ctx, coap_session_t *session,
   }
 }
 
-void send_coap_request(coap_session_t *session, coap_uri_t *uri) {
+void send_coap_request(coap_context_t *ctx, coap_session_t *session,
+                       coap_uri_t *uri) {
   coap_pdu_t *request;
   coap_optlist_t *optlist = NULL;
   unsigned char _buf[BUFSIZE];
@@ -263,7 +264,7 @@ int main(void) {
   coap_register_response_handler(ctx, handle_coap_response);
 
   // Send a CoAP request with Observe option to the server
-  send_coap_request(session, &uri);
+  send_coap_request(ctx, session, &uri);
 
   // Run the CoAP client loop
   coap_client_loop(ctx);
