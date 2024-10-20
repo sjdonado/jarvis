@@ -19,6 +19,27 @@
 // Global variable for the e-paper display image buffer
 UBYTE *BlackImage = NULL;
 
+void cleanup_and_exit(coap_context_t *ctx, coap_session_t *session, int exit_code) {
+    printf("Turning off the screen...\n");
+
+    if (BlackImage) {
+        free(BlackImage);
+        BlackImage = NULL;
+    }
+    EPD_2in13_V4_Clear();
+    EPD_2in13_V4_Sleep();
+    DEV_Module_Exit();
+
+    if (session) {
+        coap_session_release(session);
+    }
+    if (ctx) {
+        coap_free_context(ctx);
+    }
+
+    exit(exit_code);
+}
+
 int check_for_enter_press() {
     fd_set read_fds;
     struct timeval tv;
@@ -151,6 +172,9 @@ void display_clock() {
 }
 
 int main(void) {
+    coap_context_t *ctx = NULL;
+    coap_session_t *session = NULL;
+
     if (DEV_Module_Init() != 0) {
         return -1;
     }
@@ -164,8 +188,8 @@ int main(void) {
                            : (EPD_2in13_V4_WIDTH / 8 + 1)) * EPD_2in13_V4_HEIGHT;
     BlackImage = (UBYTE *)malloc(Imagesize);
     if (!BlackImage) {
-        DEV_Module_Exit();
-        return -1;
+        fprintf(stderr, "Failed to allocate memory for BlackImage.\n");
+        cleanup_and_exit(ctx, session, -1);
     }
 
     Paint_NewImage(BlackImage, EPD_2in13_V4_WIDTH, EPD_2in13_V4_HEIGHT, ROTATE_90, WHITE);
@@ -178,30 +202,23 @@ int main(void) {
     const char *server_uri = getenv("COAP_SERVER_URI");
     if (!server_uri) {
         fprintf(stderr, "COAP_SERVER_URI environment variable not set.\n");
-        free(BlackImage);
-        DEV_Module_Exit();
-        return -1;
+        cleanup_and_exit(ctx, session, -1);
     }
 
     printf("Connecting to CoAP server: %s\n", server_uri);
 
     // Initialize CoAP context
-    coap_context_t *ctx = coap_new_context(NULL);
+    ctx = coap_new_context(NULL);
     if (!ctx) {
         fprintf(stderr, "Failed to create CoAP context.\n");
-        free(BlackImage);
-        DEV_Module_Exit();
-        return -1;
+        cleanup_and_exit(ctx, session, -1);
     }
 
     // Parse the CoAP URI
     coap_uri_t uri;
     if (coap_split_uri((const unsigned char *)server_uri, strlen(server_uri), &uri) == -1) {
         fprintf(stderr, "Invalid CoAP URI.\n");
-        coap_free_context(ctx);
-        free(BlackImage);
-        DEV_Module_Exit();
-        return -1;
+        cleanup_and_exit(ctx, session, -1);
     }
 
     // Create a CoAP session
@@ -216,19 +233,13 @@ int main(void) {
 
     if (inet_pton(AF_INET, host, &dst_addr.addr.sin.sin_addr) <= 0) {
         fprintf(stderr, "Invalid server address: %s\n", host);
-        coap_free_context(ctx);
-        free(BlackImage);
-        DEV_Module_Exit();
-        return -1;
+        cleanup_and_exit(ctx, session, -1);
     }
 
-    coap_session_t *session = coap_new_client_session(ctx, NULL, &dst_addr, COAP_PROTO_UDP);
+    session = coap_new_client_session(ctx, NULL, &dst_addr, COAP_PROTO_UDP);
     if (!session) {
         fprintf(stderr, "Failed to create CoAP client session.\n");
-        coap_free_context(ctx);
-        free(BlackImage);
-        DEV_Module_Exit();
-        return -1;
+        cleanup_and_exit(ctx, session, -1);
     }
 
     // Set up response handler
@@ -240,15 +251,8 @@ int main(void) {
     // Run the CoAP client loop
     coap_client_loop(ctx);
 
-    printf("Turning off the screen...\n");
+    // Clean up and exit
+    cleanup_and_exit(ctx, session, 0);
 
-    free(BlackImage);
-    EPD_2in13_V4_Clear();
-    EPD_2in13_V4_Sleep();
-    DEV_Module_Exit();
-
-    coap_session_release(session);
-    coap_free_context(ctx);
-
-    return 0;
+    return 0; // This line will not be reached due to exit() in cleanup_and_exit
 }
