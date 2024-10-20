@@ -1,4 +1,4 @@
-import coap from "https://esm.sh/coap@0.26.0";
+import coap from "coap";
 
 // Store the current message to send to clients
 let currentMessage = "Hello from CoAP Server!";
