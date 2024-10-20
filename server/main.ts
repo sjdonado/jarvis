@@ -1,9 +1,23 @@
+import { config } from "dotenv";
 import coap from "coap";
+
+const env = await config();
+const VALID_API_KEY = env.API_KEY;
 
 const observers: coap.OutgoingMessage[] = [];
 
 const coapServer = coap.createServer((req, res) => {
   console.log("CoAP client connected from", req.rsinfo.address, req.rsinfo.port);
+
+  // Check for the API_KEY in the custom option 2048
+  const apiKeyOption = req.options.find((opt) => opt.name === 2048);
+  const apiKey = apiKeyOption ? apiKeyOption.value.toString() : null;
+
+  if (apiKey !== VALID_API_KEY) {
+    console.log("Invalid or missing API_KEY in custom option 2048");
+    res.code = "4.01"; // CoAP Unauthorized response code
+    return res.end("Unauthorized: Missing or invalid API_KEY");
+  }
 
   if (req.headers["Observe"] === 0) {
     console.log("Client is observing the resource");

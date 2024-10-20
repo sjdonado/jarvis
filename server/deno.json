@@ -1,8 +1,10 @@
 {
   "tasks": {
-    "dev": "deno run --allow-all --watch main.ts"
+    "dev": "deno run --allow-all --watch main.ts",
+    "start": "deno run --allow-net --allow-env --allow-read --output coap-server main.ts"
   },
   "imports": {
-    "coap": "https://esm.sh/coap@0.26.0"
+    "coap": "https://esm.sh/coap@0.26.0",
+    "dotenv": "https://deno.land/std@0.201.0/dotenv/mod.ts"
   }
 }

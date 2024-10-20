@@ -40,13 +40,18 @@ otherwise, run `sudo raspi-config` and enable Inerface Options > I4 and Interfac
 
 - Server
 ```bash
+export API_KEY="your_api_key_here"
 deno run dev
 ```
 
 - Client
 ```bash
 sudo make clean && sudo make
+
 export COAP_SERVER_URI="coap://<your-local-ip>:5683"
+export COAP_SERVER_API_KEY="your_api_key_here"
+
+./epd
 ```
 
 ## Send a message
