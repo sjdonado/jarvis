@@ -38,7 +38,7 @@ int check_for_enter_press() {
 
 // Function to display text on the e-paper screen
 void display_text(const char *text) {
-    Paint_ClearWindows(10, 40, 10 + Font16.Width * strlen(text), 40 + Font16.Height, WHITE);
+    Paint_ClearWindows(10, 40, EPD_2in13_V4_WIDTH, 40 + Font16.Height, WHITE);
     Paint_DrawString_EN(10, 40, text, &Font16, WHITE, BLACK);
     EPD_2in13_V4_Display_Partial(BlackImage);
 }
@@ -126,7 +126,7 @@ int main(void) {
     Paint_SelectImage(BlackImage);
     Paint_Clear(WHITE);
 
-    display_text("Connecting...");
+    display_text("Loading...");
 
     // Get CoAP server URI from environment variable
     const char *server_uri = getenv("COAP_SERVER_URI");
