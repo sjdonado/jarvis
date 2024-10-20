@@ -6,7 +6,13 @@
 sudo apt update
 sudo apt-get update
 
-sudo apt-get install python3-pip gpiod libgpiod-dev libcoap2 libcoap2-dev
+sudo apt-get install python3-pip gpiod libgpiod-dev
+
+# kindle
+sudo apt-get install libcurl4-openssl-dev
+
+# realtime
+sudo apt-get install libcoap2 libcoap2-dev
 
 sudo locale-gen en_US.UTF-8
 sudo dpkg-reconfigure locales
@@ -48,6 +54,10 @@ deno run dev
 ```bash
 sudo make clean && sudo make
 
+# kindle
+export API_SERVER_URL="http://localhost/daily-quote"
+
+# realtime
 export COAP_SERVER_URI="coap://<your-local-ip>:5683"
 export COAP_SERVER_API_KEY="your_api_key_here"
 
@@ -65,6 +75,8 @@ curl --request POST \
 ```
 
 ---
+
+More info
 
 1. Basic information:
 This routine has been verified using the e-paper Driver HAT module. 
