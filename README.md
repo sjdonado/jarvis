@@ -40,6 +40,7 @@ otherwise, run `sudo raspi-config` and enable Inerface Options > I4 and Interfac
 
 ```bash
 sudo make clean && sudo make
+export COAP_SERVER_URI="coap://127.0.0.1/epd"
 ```
 
 ## Send a message

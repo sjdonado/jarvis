@@ -40,90 +40,50 @@ void display_text(UBYTE *BlackImage, const char *text) {
     EPD_2in13_V4_Display_Partial(BlackImage);
 }
 
-// CoAP response handler and message display logic
-void handle_coap_request(coap_context_t *ctx, coap_resource_t *resource,
-                         coap_session_t *session, coap_pdu_t *request,
-                         coap_binary_t *token, coap_string_t *query,
-                         coap_pdu_t *response) {
+// CoAP response handler
+void handle_coap_response(coap_context_t *ctx, coap_session_t *session,
+                          coap_pdu_t *sent, coap_pdu_t *received,
+                          const coap_tid_t id) {
     size_t size;
     unsigned char *data;
 
-    // Extract the payload from the CoAP request
-    if (coap_get_data(request, &size, &data)) {
-        // Ensure the message is null-terminated
-        char input_text[MAX_INPUT_SIZE];
-        snprintf(input_text, sizeof(input_text), "%.*s", (int)size, data);
-        printf("Received input: %s\n", input_text);
+    // Extract the payload from the CoAP response
+    if (coap_get_data(received, &size, &data)) {
+        char response_text[MAX_INPUT_SIZE];
+        snprintf(response_text, sizeof(response_text), "%.*s", (int)size, data);
+        printf("Received CoAP response: %s\n", response_text);
 
-        // Display the message on the e-paper screen
-        display_text(BlackImage, input_text);
-
-        // Create a response acknowledging the message
-        response->code = COAP_RESPONSE_CODE(205);
-        coap_add_data(response, size, data);
+        // Display the response on the e-paper screen
+        display_text(NULL, response_text); // Passing NULL as BlackImage temporarily
     } else {
-        printf("No payload received in CoAP request.\n");
-        response->code = COAP_RESPONSE_CODE(400);
+        printf("No payload received in CoAP response.\n");
     }
 }
 
-void setup_coap_server(coap_context_t **ctx, coap_resource_t **resource) {
-    *ctx = coap_new_context(NULL);
-    if (!*ctx) {
-        fprintf(stderr, "Failed to create CoAP context\n");
-        exit(1);
+void send_coap_request(coap_context_t *ctx, coap_session_t *session) {
+    coap_pdu_t *request;
+    request = coap_new_pdu(session);
+    if (!request) {
+        fprintf(stderr, "Failed to create CoAP request PDU.\n");
+        return;
     }
 
-    *resource = coap_resource_init(coap_make_str_const("epd"), 0);
-    coap_register_handler(*resource, COAP_REQUEST_GET | COAP_REQUEST_POST, handle_coap_request);
-    coap_add_resource(*ctx, *resource);
+    // Create a CoAP GET request
+    coap_pdu_set_type(request, COAP_MESSAGE_CON);
+    coap_pdu_set_code(request, COAP_REQUEST_GET);
+    coap_add_option(request, COAP_OPTION_URI_PATH, 3, (const unsigned char *)"epd");
+
+    // Send the request
+    coap_send(session, request);
 }
 
-void coap_server_loop(coap_context_t *ctx) {
+void coap_client_loop(coap_context_t *ctx) {
     printf("Press ENTER to exit...\r\n");
     while (1) {
         coap_io_process(ctx, COAP_IO_WAIT);
         if (check_for_enter_press()) {
             break;
         }
-        DEV_Delay_ms(1000);
-    }
-}
-
-void display_clock(UBYTE *BlackImage) {
-    PAINT_TIME sPaint_time;
-    time_t rawtime;
-    struct tm *timeinfo;
-
-    time(&rawtime);
-    timeinfo = localtime(&rawtime);
-    sPaint_time.Hour = timeinfo->tm_hour;
-    sPaint_time.Min = timeinfo->tm_min;
-    sPaint_time.Sec = timeinfo->tm_sec;
-
-    while (1) {
-        sPaint_time.Sec = sPaint_time.Sec + 1;
-        if (sPaint_time.Sec == 60) {
-            sPaint_time.Min = sPaint_time.Min + 1;
-            sPaint_time.Sec = 0;
-            if (sPaint_time.Min == 60) {
-                sPaint_time.Hour = sPaint_time.Hour + 1;
-                sPaint_time.Min = 0;
-                if (sPaint_time.Hour == 24) {
-                    sPaint_time.Hour = 0;
-                }
-            }
-        }
-
-        Paint_ClearWindows(170, 0, 170 + Font16.Width * 7, 80 + Font16.Height, WHITE);
-        Paint_DrawTime(170, 0, &sPaint_time, &Font16, WHITE, BLACK);
-
-        EPD_2in13_V4_Display_Partial(BlackImage);
-
-        if (check_for_enter_press()) {
-            break;
-        }
-
         DEV_Delay_ms(1000);
     }
 }
@@ -137,6 +97,7 @@ int main(void) {
     EPD_2in13_V4_Clear();
     DEV_Delay_ms(100);
 
+    // Initialize e-paper display buffer
     UWORD Imagesize = ((EPD_2in13_V4_WIDTH % 8 == 0) ? (EPD_2in13_V4_WIDTH / 8) : (EPD_2in13_V4_WIDTH / 8 + 1)) * EPD_2in13_V4_HEIGHT;
     UBYTE *BlackImage;
     if ((BlackImage = (UBYTE *)malloc(Imagesize)) == NULL) {
@@ -148,13 +109,41 @@ int main(void) {
     Paint_SelectImage(BlackImage);
     Paint_Clear(WHITE);
 
-    display_text(BlackImage, "Listening...");
+    display_text(BlackImage, "Connecting...");
 
-    coap_context_t *ctx;
-    coap_resource_t *resource;
-    setup_coap_server(&ctx, &resource);
+    // Get CoAP server URI from environment variable
+    const char *server_uri = getenv("COAP_SERVER_URI");
+    if (!server_uri) {
+        fprintf(stderr, "COAP_SERVER_URI environment variable not set.\n");
+        free(BlackImage);
+        DEV_Module_Exit();
+        return -1;
+    }
 
-    coap_server_loop(ctx);
+    printf("Connecting to CoAP server: %s\n", server_uri);
+
+    // Initialize CoAP context and session
+    coap_context_t *ctx = coap_new_context(NULL);
+    coap_session_t *session = coap_new_client_session(ctx, NULL, coap_address_init(), COAP_PROTO_UDP);
+
+    if (!session) {
+        fprintf(stderr, "Failed to create CoAP client session.\n");
+        coap_free_context(ctx);
+        free(BlackImage);
+        DEV_Module_Exit();
+        return -1;
+    }
+
+    // Set up response handler
+    coap_register_response_handler(ctx, handle_coap_response);
+
+    // Send a CoAP request to the server
+    send_coap_request(ctx, session);
+
+    // Run the CoAP client loop
+    coap_client_loop(ctx);
+
+    printf("Turning off the screen...", server_uri);
 
     free(BlackImage);
     EPD_2in13_V4_Clear();
@@ -162,6 +151,5 @@ int main(void) {
     DEV_Module_Exit();
 
     coap_free_context(ctx);
-
     return 0;
 }
