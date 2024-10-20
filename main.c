@@ -116,8 +116,8 @@ void display_clock(UBYTE *BlackImage) {
             }
         }
 
-        Paint_ClearWindows(180, 0, 180 + Font16.Width * 7, 80 + Font16.Height, WHITE);
-        Paint_DrawTime(180, 0, &sPaint_time, &Font16, WHITE, BLACK);
+        Paint_ClearWindows(170, 0, 170 + Font16.Width * 7, 80 + Font16.Height, WHITE);
+        Paint_DrawTime(170, 0, &sPaint_time, &Font16, WHITE, BLACK);
 
         EPD_2in13_V4_Display_Partial(BlackImage);
 
