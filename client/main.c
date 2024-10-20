@@ -33,18 +33,38 @@ int check_for_enter_press() {
     return 0;
 }
 
-// CoAP response handler
+// Function to display the CoAP message on the screen
+void display_text(UBYTE *BlackImage, const char *text) {
+    Paint_ClearWindows(10, 40, 10 + Font16.Width * 120, 40 + Font16.Height, WHITE);
+    Paint_DrawString_EN(10, 40, text, &Font16, WHITE, BLACK);
+    EPD_2in13_V4_Display_Partial(BlackImage);
+}
+
+// CoAP response handler and message display logic
 void handle_coap_request(coap_context_t *ctx, coap_resource_t *resource,
                          coap_session_t *session, coap_pdu_t *request,
                          coap_binary_t *token, coap_string_t *query,
                          coap_pdu_t *response) {
-    char input_text[MAX_INPUT_SIZE] = "Received CoAP message!";
-    coap_show_pdu(COAP_LOG_INFO, request);
+    size_t size;
+    unsigned char *data;
 
-    // Create response
-    unsigned char buf[3];
-    response->code = COAP_RESPONSE_CODE(205);
-    coap_add_data(response, strlen(input_text), (unsigned char *)input_text);
+    // Extract the payload from the CoAP request
+    if (coap_get_data(request, &size, &data)) {
+        // Ensure the message is null-terminated
+        char input_text[MAX_INPUT_SIZE];
+        snprintf(input_text, sizeof(input_text), "%.*s", (int)size, data);
+        printf("Received input: %s\n", input_text);
+
+        // Display the message on the e-paper screen
+        display_text(BlackImage, input_text);
+
+        // Create a response acknowledging the message
+        response->code = COAP_RESPONSE_CODE(205);
+        coap_add_data(response, size, data);
+    } else {
+        printf("No payload received in CoAP request.\n");
+        response->code = COAP_RESPONSE_CODE(400);
+    }
 }
 
 void setup_coap_server(coap_context_t **ctx, coap_resource_t **resource) {
@@ -55,11 +75,11 @@ void setup_coap_server(coap_context_t **ctx, coap_resource_t **resource) {
     }
 
     *resource = coap_resource_init(coap_make_str_const("epd"), 0);
-    coap_register_handler(*resource, COAP_REQUEST_GET, handle_coap_request);
+    coap_register_handler(*resource, COAP_REQUEST_GET | COAP_REQUEST_POST, handle_coap_request);
     coap_add_resource(*ctx, *resource);
 }
 
-void coap_server_loop(coap_context_t *ctx, UBYTE *BlackImage) {
+void coap_server_loop(coap_context_t *ctx) {
     printf("Press ENTER to exit...\r\n");
     while (1) {
         coap_io_process(ctx, COAP_IO_WAIT);
@@ -68,12 +88,6 @@ void coap_server_loop(coap_context_t *ctx, UBYTE *BlackImage) {
         }
         DEV_Delay_ms(1000);
     }
-}
-
-void display_text(UBYTE *BlackImage, const char *text) {
-    Paint_ClearWindows(10, 40, 10 + Font16.Width * 120, 40 + Font16.Height, WHITE);
-    Paint_DrawString_EN(10, 40, text, &Font16, WHITE, BLACK);
-    EPD_2in13_V4_Display_Partial(BlackImage);
 }
 
 void display_clock(UBYTE *BlackImage) {
@@ -140,7 +154,7 @@ int main(void) {
     coap_resource_t *resource;
     setup_coap_server(&ctx, &resource);
 
-    coap_server_loop(ctx, BlackImage);
+    coap_server_loop(ctx);
 
     free(BlackImage);
     EPD_2in13_V4_Clear();
