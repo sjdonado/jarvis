@@ -37,9 +37,8 @@ int check_for_enter_press() {
     return 0;
 }
 
-// Function to display text on the e-paper screen
 void display_text(const char *text) {
-    Paint_ClearWindows(10, 40, EPD_2in13_V4_WIDTH, 40 + Font16.Height, WHITE);
+    Paint_ClearWindows(10, 40, EPD_2in13_V4_HEIGHT, 40 + Font16.Height, WHITE);
     Paint_DrawString_EN(10, 40, text, &Font16, WHITE, BLACK);
     EPD_2in13_V4_Display_Partial(BlackImage);
 }
@@ -130,7 +129,6 @@ void coap_client_loop(coap_context_t *ctx) {
     }
 }
 
-// Function to display the clock
 void display_clock() {
     static time_t last_time = 0;
     time_t rawtime;
@@ -251,5 +249,6 @@ int main(void) {
 
     coap_session_release(session);
     coap_free_context(ctx);
+
     return 0;
 }

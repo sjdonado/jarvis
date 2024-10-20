@@ -11,9 +11,9 @@ const coapServer = coap.createServer((req, res) => {
     observers.push(res);
 
     res.setOption("Observe", 1);
+  } else {
+    res.end("Connected!");
   }
-
-  res.end("Connected!");
 });
 
 coapServer.listen(5683, () => {
@@ -36,7 +36,9 @@ Deno.serve(
     const { pathname } = new URL(req.url);
     if (req.method === "GET" && pathname === "/") {
       return new Response("Server is running\n", { status: 200 });
-    } else if (req.method === "POST" && pathname === "/send") {
+    }
+
+    if (req.method === "POST" && pathname === "/send") {
       try {
         const contentType = req.headers.get("Content-Type");
         if (contentType !== "application/json") {
@@ -45,7 +47,8 @@ Deno.serve(
 
         const { message } = await req.json();
         if (message) {
-          notifyObservers(message); // Notify observing CoAP clients
+          notifyObservers(message);
+
           return new Response("Message sent to CoAP clients\n", { status: 200 });
         } else {
           return new Response("Invalid message\n", { status: 400 });
@@ -54,9 +57,9 @@ Deno.serve(
         console.error("Error processing request:", err);
         return new Response("Invalid request\n", { status: 400 });
       }
-    } else {
-      return new Response("Not found\n", { status: 404 });
     }
+
+    return new Response("Not found\n", { status: 404 });
   },
   { port: 8000 },
 );
