@@ -1,6 +1,7 @@
 {
   "version": "4",
   "remote": {
+    "https://deno.land/std@0.201.0/dotenv/mod.ts": "1da8c6d0e7f7d8a5c2b19400b763bc11739df24acec235dda7ea2cfd3d300057",
     "https://esm.sh/coap@0.26.0": "af0d9241de5e876f5bd66fecd1a9aad739d7d4ee5ff2ed37ebbad92846d534c7",
     "https://esm.sh/v135/bl@5.1.0/denonext/bl.mjs": "6b5c64ddd4dc8eeed323895dd3a2be5dd6dfa1c69c0ea81601c1c8ae1ee5203d",
     "https://esm.sh/v135/capitalize@2.0.4/denonext/capitalize.mjs": "28589c9282df034658df45689e9f2087c235414866ddf39b064168c5583eed2e",
