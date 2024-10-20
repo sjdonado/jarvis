@@ -1,10 +1,8 @@
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <coap2/coap.h>
 
 #include "DEV_Config.h"
 #include "GUI_Paint.h"
@@ -15,7 +13,6 @@
 
 #include "EPD_2in13_V4.h"
 
-#define SOCKET_PATH "/tmp/epd_socket"
 #define MAX_INPUT_SIZE 256
 
 int check_for_enter_press() {
@@ -24,65 +21,53 @@ int check_for_enter_press() {
     FD_ZERO(&read_fds);
     FD_SET(STDIN_FILENO, &read_fds);
 
-    // Set a timeout of 0 seconds to make select non-blocking
     tv.tv_sec = 0;
     tv.tv_usec = 0;
 
-    // Check if there's input available on stdin (standard input)
     if (select(STDIN_FILENO + 1, &read_fds, NULL, NULL, &tv) > 0) {
         char buf[1];
         if (read(STDIN_FILENO, buf, 1) > 0 && buf[0] == '\n') {
-            return 1;  // Enter key was pressed
+            return 1;
         }
     }
-    return 0;  // No input or other key was pressed
-}
-
-int fd_socket;
-
-int create_unix_socket() {
-    struct sockaddr_un addr;
-    if ((fd_socket = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
-        return -1;
-    }
-
-    memset(&addr, 0, sizeof(addr));
-    addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, SOCKET_PATH, sizeof(addr.sun_path) - 1);
-
-    unlink(SOCKET_PATH);
-    if (bind(fd_socket, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
-        close(fd_socket);
-        return -1;
-    }
-
-    if (listen(fd_socket, 5) == -1) {
-        close(fd_socket);
-        return -1;
-    }
-
     return 0;
 }
 
-int handle_socket_input(char *input_text) {
-    struct sockaddr_un client_addr;
-    socklen_t client_len = sizeof(client_addr);
-    int client_fd = accept(fd_socket, (struct sockaddr*)&client_addr, &client_len);
+// CoAP response handler
+void handle_coap_request(coap_context_t *ctx, coap_resource_t *resource,
+                         coap_session_t *session, coap_pdu_t *request,
+                         coap_binary_t *token, coap_string_t *query,
+                         coap_pdu_t *response) {
+    char input_text[MAX_INPUT_SIZE] = "Received CoAP message!";
+    coap_show_pdu(COAP_LOG_INFO, request);
 
-    if (client_fd == -1) {
-        return -1;
+    // Create response
+    unsigned char buf[3];
+    response->code = COAP_RESPONSE_CODE(205);
+    coap_add_data(response, strlen(input_text), (unsigned char *)input_text);
+}
+
+void setup_coap_server(coap_context_t **ctx, coap_resource_t **resource) {
+    *ctx = coap_new_context(NULL);
+    if (!*ctx) {
+        fprintf(stderr, "Failed to create CoAP context\n");
+        exit(1);
     }
 
-    ssize_t num_bytes = read(client_fd, input_text, MAX_INPUT_SIZE - 1);
-    if (num_bytes > 0) {
-        input_text[num_bytes] = '\0';
-	 printf("Received input: %s\r\n", input_text);
-        close(client_fd);
-        return 0;
-    }
+    *resource = coap_resource_init(coap_make_str_const("epd"), 0);
+    coap_register_handler(*resource, COAP_REQUEST_GET, handle_coap_request);
+    coap_add_resource(*ctx, *resource);
+}
 
-    close(client_fd);
-    return -1;
+void coap_server_loop(coap_context_t *ctx, UBYTE *BlackImage) {
+    printf("Press ENTER to exit...\r\n");
+    while (1) {
+        coap_io_process(ctx, COAP_IO_WAIT);
+        if (check_for_enter_press()) {
+            break;
+        }
+        DEV_Delay_ms(1000);
+    }
 }
 
 void display_text(UBYTE *BlackImage, const char *text) {
@@ -121,24 +106,6 @@ void display_clock(UBYTE *BlackImage) {
 
         EPD_2in13_V4_Display_Partial(BlackImage);
 
-        char input_text[MAX_INPUT_SIZE] = {0};
-        fd_set readfds;
-        struct timeval tv;
-        int retval;
-
-        FD_ZERO(&readfds);
-        FD_SET(fd_socket, &readfds);
-
-        tv.tv_sec = 0;
-        tv.tv_usec = 0;
-
-        retval = select(fd_socket + 1, &readfds, NULL, NULL, &tv);
-        if (retval > 0) {
-            if (handle_socket_input(input_text) == 0) {
-                display_text(BlackImage, input_text);
-            }
-        }
-
         if (check_for_enter_press()) {
             break;
         }
@@ -169,22 +136,18 @@ int main(void) {
 
     display_text(BlackImage, "Listening...");
 
-    if (create_unix_socket() == -1) {
-        free(BlackImage);
-        DEV_Module_Exit();
-        return -1;
-    }
+    coap_context_t *ctx;
+    coap_resource_t *resource;
+    setup_coap_server(&ctx, &resource);
 
-    printf("Press ENTER to exit...\r\n");
-    display_clock(BlackImage);
+    coap_server_loop(ctx, BlackImage);
 
     free(BlackImage);
     EPD_2in13_V4_Clear();
     EPD_2in13_V4_Sleep();
     DEV_Module_Exit();
 
-    close(fd_socket);
-    unlink(SOCKET_PATH);
+    coap_free_context(ctx);
 
     return 0;
 }

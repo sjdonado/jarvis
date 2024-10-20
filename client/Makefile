@@ -32,7 +32,7 @@ CC = gcc
 CFLAGS = -Wall -g -O -ffunction-sections -fdata-sections -D $(EPD) -D USE_DEV_LIB -D RPI
 
 # Library dependencies (use libgpiod for GPIO)
-LIBS = -lm -lgpiod
+LIBS = -lm -lgpiod -lcoap-2
 
 # Compile the program
 all: $(TARGET)

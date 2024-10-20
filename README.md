@@ -1,4 +1,48 @@
-# Send a message
+# Client
+
+## Setup
+
+```bash
+sudo apt update
+sudo apt-get update
+
+sudo apt-get install python3-pip gpiod libgpiod-dev libcoap2 libcoap2-dev
+
+sudo locale-gen en_US.UTF-8
+sudo dpkg-reconfigure locales
+
+wget https://github.com/joan2937/lg/archive/master.zip
+unzip master.zip
+cd lg-master
+make
+sudo make install
+
+wget http://www.airspayce.com/mikem/bcm2835/bcm2835-1.71.tar.gz
+tar zxvf bcm2835-1.71.tar.gz
+cd bcm2835-1.71/
+sudo ./configure && sudo make && sudo make check && sudo make install
+
+wget https://github.com/WiringPi/WiringPi/releases/download/3.10/wiringpi_3.10_armhf.deb
+sudo apt install ./wiringpi_3.10_armhf.deb
+```
+
+Make sure `sudo nvim /boot/firmware/config.txt` looks like this:
+```
+dtparam=spi=on
+
+[all]
+enable_uart=1
+dtoverlay=disable-bt
+```
+otherwise, run `sudo raspi-config` and enable Inerface Options > I4 and Interface Options > I6
+
+## Run
+
+```bash
+sudo make clean && sudo make
+```
+
+## Send a message
 ```bash
 echo "Connected!" | sudo nc -U /tmp/epd_socket
 ```
