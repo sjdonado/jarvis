@@ -1,15 +1,22 @@
-#include "EPD_2in13_V4.h"
-#include "GUI_Paint.h"
-#include "fonts.h"
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+
+#include "DEV_Config.h"
+#include "GUI_Paint.h"
+#include "GUI_BMPfile.h"
+#include "ImageData.h"
+#include "Debug.h"
+#include "fonts.h"
+
+#include "EPD_2in13_V4.h"
 
 #define SOCKET_PATH "/tmp/epd_socket"  // Path to the Unix socket
-#define MAX_INPUT_SIZE 256  // Maximum UTF-8 input size
+#define MAX_INPUT_SIZE 256             // Maximum UTF-8 input size
 
 int fd_socket;  // File descriptor for the Unix socket
 
@@ -28,11 +35,13 @@ int create_unix_socket() {
     unlink(SOCKET_PATH);
     if (bind(fd_socket, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
         perror("bind error");
+        close(fd_socket);  // Close the socket on error
         return -1;
     }
 
     if (listen(fd_socket, 5) == -1) {
         perror("listen error");
+        close(fd_socket);  // Close the socket on error
         return -1;
     }
 
@@ -50,7 +59,7 @@ int handle_socket_input(char *input_text) {
         return -1;
     }
 
-    ssize_t num_bytes = read(client_fd, input_text, MAX_INPUT_SIZE);
+    ssize_t num_bytes = read(client_fd, input_text, MAX_INPUT_SIZE - 1);
     if (num_bytes > 0) {
         input_text[num_bytes] = '\0';  // Null-terminate the input
         printf("Received input: %s\n", input_text);
@@ -69,6 +78,49 @@ void display_text(UBYTE *BlackImage, const char *text) {
     EPD_2in13_V4_Display(BlackImage);  // Full refresh after drawing text
 }
 
+// Function to show a clock on the e-paper display
+void display_clock(UBYTE *BlackImage) {
+    time_t rawtime;
+    struct tm *timeinfo;
+    char time_str[10];
+
+    while (1) {
+        // Get current time
+        time(&rawtime);
+        timeinfo = localtime(&rawtime);
+        strftime(time_str, sizeof(time_str), "%H:%M:%S", timeinfo);
+
+        // Draw the time
+        Paint_Clear(WHITE);
+        Paint_DrawString_EN(10, 10, time_str, &Font20, BLACK, WHITE);
+
+        EPD_2in13_V4_Display(BlackImage);
+
+        // Check for incoming messages
+        char input_text[MAX_INPUT_SIZE] = {0};
+        fd_set readfds;
+        struct timeval tv;
+        int retval;
+
+        FD_ZERO(&readfds);
+        FD_SET(fd_socket, &readfds);
+
+        tv.tv_sec = 0;
+        tv.tv_usec = 0;
+
+        retval = select(fd_socket + 1, &readfds, NULL, NULL, &tv);
+        if (retval == -1) {
+            perror("select()");
+        } else if (retval) {
+            if (handle_socket_input(input_text) == 0) {
+                display_text(BlackImage, input_text);  // Display input text on the e-paper
+            }
+        }
+
+        sleep(1);  // Update every second
+    }
+}
+
 int main(void) {
     printf("EPD Test Program Started\n");
 
@@ -80,12 +132,14 @@ int main(void) {
 
     EPD_2in13_V4_Init();
     EPD_2in13_V4_Clear();
+    DEV_Delay_ms(100);
 
     // Initialize display buffer
     UWORD Imagesize = ((EPD_2in13_V4_WIDTH % 8 == 0) ? (EPD_2in13_V4_WIDTH / 8) : (EPD_2in13_V4_WIDTH / 8 + 1)) * EPD_2in13_V4_HEIGHT;
     UBYTE *BlackImage;
     if ((BlackImage = (UBYTE *)malloc(Imagesize)) == NULL) {
         printf("Failed to allocate memory for display buffer.\n");
+        DEV_Module_Exit();
         return -1;
     }
 
@@ -103,20 +157,33 @@ int main(void) {
     if (create_unix_socket() == -1) {
         printf("Socket creation failed.\n");
         free(BlackImage);
+        DEV_Module_Exit();
         return -1;
     }
 
     printf("Listening for Unix socket input at /tmp/epd_socket...\n");
 
-    char input_text[MAX_INPUT_SIZE] = {0};
-    while (1) {
-        // Check for incoming UTF-8 input from Unix socket
-        if (handle_socket_input(input_text) == 0) {
-            display_text(BlackImage, input_text);  // Display input text on the e-paper
-        }
-        usleep(100000);  // Sleep for 100ms
-    }
+    // Draw an image from an array
+    Paint_Clear(WHITE);
+    Paint_DrawBitMap(gImage_2in13_2);  // Display predefined image array
+    EPD_2in13_V4_Display(BlackImage);
+    DEV_Delay_ms(2000);
 
+    // Display the clock and listen for input from the Unix socket
+    display_clock(BlackImage);
+
+    // Free the display buffer
     free(BlackImage);
+    BlackImage = NULL;
+
+    // Cleanup and power off the display
+    EPD_2in13_V4_Clear();
+    EPD_2in13_V4_Sleep();
+    DEV_Module_Exit();
+
+    // Close the Unix socket
+    close(fd_socket);
+    unlink(SOCKET_PATH);
+
     return 0;
 }
