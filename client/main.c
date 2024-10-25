@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,6 +19,27 @@
 // Global variables
 UBYTE *BlackImage = NULL;
 MQTTClient client;
+
+// Function to check BMP dimensions
+int GUI_BMPfile_CheckDimensions(const char *bmp_file, int expected_width, int expected_height) {
+    FILE *fp = fopen(bmp_file, "rb");
+    if (!fp) {
+        fprintf(stderr, "Failed to open BMP file for dimension check.\n");
+        return 0;
+    }
+
+    // Skip to BMP width/height in the header (offsets 18 and 22 in BMP header)
+    fseek(fp, 18, SEEK_SET);
+
+    int32_t width, height;
+    fread(&width, sizeof(int32_t), 1, fp);
+    fread(&height, sizeof(int32_t), 1, fp);
+
+    fclose(fp);
+
+    printf("Received BMP dimensions: %dx%d\n", width, height);
+    return (width == expected_width && height == expected_height);
+}
 
 // Function to clean up and turn off the screen
 void cleanup_and_exit(int exit_code) {
@@ -82,12 +104,27 @@ int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *m
     fwrite(message->payload, 1, message->payloadlen, fp);
     fclose(fp);
 
+    // Debug log to verify file save success
+    printf("BMP image saved to %s\n", bmp_file);
+
     // Display the BMP image on the e-paper display
     Paint_SelectImage(BlackImage);
-    GUI_ReadBmp(bmp_file, 0, 0);
-    EPD_2in13_V4_Display(BlackImage);
 
-    printf("Image displayed on e-paper.\n");
+    // Check BMP dimensions before displaying
+    int expected_width = EPD_2in13_V4_WIDTH;
+    int expected_height = EPD_2in13_V4_HEIGHT;
+
+    if (GUI_BMPfile_CheckDimensions(bmp_file, expected_width, expected_height)) {
+        // Dimensions are correct; proceed with displaying
+        if (GUI_ReadBmp(bmp_file, 0, 0) == 0) {
+            EPD_2in13_V4_Display(BlackImage);
+            printf("Image displayed on e-paper.\n");
+        } else {
+            printf("Failed to read BMP image into display buffer.\n");
+        }
+    } else {
+        fprintf(stderr, "Error: BMP dimensions do not match display. Expected %dx%d.\n", expected_width, expected_height);
+    }
 
     MQTTClient_freeMessage(&message);
     MQTTClient_free(topicName);

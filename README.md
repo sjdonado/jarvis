@@ -6,13 +6,7 @@
 sudo apt update
 sudo apt-get update
 
-sudo apt-get install python3-pip gpiod libgpiod-dev
-
-# kindle
-sudo apt-get install libcurl4-openssl-dev
-
-# realtime
-sudo apt-get install libcoap2 libcoap2-dev
+sudo apt-get install python3-pip gpiod libgpiod-dev libpaho-mqtt-dev
 
 sudo locale-gen en_US.UTF-8
 sudo dpkg-reconfigure locales
@@ -46,22 +40,17 @@ otherwise, run `sudo raspi-config` and enable Inerface Options > I4 and Interfac
 
 - Server
 ```bash
-export API_KEY="your_api_key_here"
-deno run dev
+export MQTT_ADDRESS="mqtt://localhost:1883"
+npm start
 ```
 
 - Client
 ```bash
 sudo make clean && sudo make
 
-# kindle
-export API_SERVER_URL="http://localhost/daily-quote"
-
-# realtime
-export COAP_SERVER_URI="coap://<your-local-ip>:5683"
-export COAP_SERVER_API_KEY="your_api_key_here"
-
-./epd
+export MQTT_ADDRESS="tcp://your-mqtt-broker-address:1883"
+export MQTT_CLIENTID="YourUniqueClientID"
+./jarvis
 ```
 
 ## Send a message
