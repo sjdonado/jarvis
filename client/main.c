@@ -4,14 +4,17 @@
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
+
 #include "MQTTClient.h"
 
 #include "DEV_Config.h"
 #include "Debug.h"
-#include "EPD_2in13_V4.h"
+
 #include "GUI_Paint.h"
 #include "GUI_BMPfile.h"
 #include "fonts.h"
+
+#include "EPD_2in13_V4.h"
 
 #define MQTT_TOPIC     "display"
 #define QOS            1
@@ -80,7 +83,7 @@ int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *m
     }
 
     // Save the received BMP image to a temporary file
-    const char *bmp_file = "/tmp/received_image.bmp";
+    const char *bmp_file = "./received_image.bmp";
     FILE *fp = fopen(bmp_file, "wb");
     if (!fp) {
         fprintf(stderr, "Failed to open file for writing.\n");
@@ -95,21 +98,19 @@ int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *m
     // Debug log to verify file save success
     printf("BMP image saved to %s\n", bmp_file);
 
-    // Display the BMP image on the e-paper display
+    // Initialize the image buffer for the new image
+    Paint_NewImage(BlackImage, EPD_2in13_V4_WIDTH, EPD_2in13_V4_HEIGHT, ROTATE_90, WHITE);
     Paint_SelectImage(BlackImage);
+    Paint_Clear(WHITE);
 
     // Check BMP dimensions before displaying
     int expected_width = EPD_2in13_V4_WIDTH;
     int expected_height = EPD_2in13_V4_HEIGHT;
 
     if (GUI_BMPfile_CheckDimensions(bmp_file, expected_width, expected_height)) {
-        // Dimensions are correct; proceed with displaying
-        if (GUI_ReadBmp(bmp_file, 0, 0) == 0) {
-            EPD_2in13_V4_Display(BlackImage);
-            printf("Image displayed on e-paper.\n");
-        } else {
-            printf("Failed to read BMP image into display buffer.\n");
-        }
+        GUI_ReadBmp(bmp_file, 0, 0);
+    EPD_2in13_V4_Display(BlackImage);
+    printf("Image displayed on e-paper.\n");
     } else {
         fprintf(stderr, "Error: BMP dimensions do not match display. Expected %dx%d.\n", expected_width, expected_height);
     }
@@ -165,8 +166,7 @@ int main(void) {
         cleanup_and_exit(-1);
     }
 
-    Paint_NewImage(BlackImage, EPD_2in13_V4_WIDTH, EPD_2in13_V4_HEIGHT, ROTATE_90,
-                   WHITE);
+    Paint_NewImage(BlackImage, EPD_2in13_V4_WIDTH, EPD_2in13_V4_HEIGHT, 0, WHITE);
     Paint_SelectImage(BlackImage);
     Paint_Clear(WHITE);
 
@@ -197,13 +197,13 @@ int main(void) {
     printf("Subscribed to topic %s\n", MQTT_TOPIC);
 
     // Register the signal handler for Ctrl+C
-    signal(SIGINT, handle_sigint);
+signal(SIGINT, handle_sigint);
 
-    printf("Running... Press Ctrl+C to exit.\n");
-    while (!exit_requested) {
-        // Sleep for a short while to reduce CPU usage
-        usleep(500000); // Sleep for 500 milliseconds
-    }
+printf("Running... Press Ctrl+C to exit.\n");
+while (!exit_requested) {
+    // Sleep for a short while to reduce CPU usage
+    usleep(500000); // Sleep for 500 milliseconds
+}
 
     // Disconnect MQTT client
     MQTTClient_disconnect(client, 10000);
