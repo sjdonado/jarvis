@@ -32,15 +32,15 @@ export function imageDataToBMP(imageData, width, height) {
   bmpBuffer.writeUInt32LE(0, 50); // Important colors
 
   // Color Palette (2 colors for monochrome)
-  // Black
-  bmpBuffer.writeUInt8(0x00, 54); // Blue
-  bmpBuffer.writeUInt8(0x00, 55); // Green
-  bmpBuffer.writeUInt8(0x00, 56); // Red
+  // White (Index 0)
+  bmpBuffer.writeUInt8(0xFF, 54); // Blue
+  bmpBuffer.writeUInt8(0xFF, 55); // Green
+  bmpBuffer.writeUInt8(0xFF, 56); // Red
   bmpBuffer.writeUInt8(0x00, 57); // Reserved
-  // White
-  bmpBuffer.writeUInt8(0xFF, 58); // Blue
-  bmpBuffer.writeUInt8(0xFF, 59); // Green
-  bmpBuffer.writeUInt8(0xFF, 60); // Red
+  // Black (Index 1)
+  bmpBuffer.writeUInt8(0x00, 58); // Blue
+  bmpBuffer.writeUInt8(0x00, 59); // Green
+  bmpBuffer.writeUInt8(0x00, 60); // Red
   bmpBuffer.writeUInt8(0x00, 61); // Reserved
 
   // Pixel Data (packed bits)
@@ -55,8 +55,17 @@ export function imageDataToBMP(imageData, width, height) {
       const r = imageData.data[srcIndex];
       const g = imageData.data[srcIndex + 1];
       const b = imageData.data[srcIndex + 2];
-      const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-      const bit = luminance < 128 ? 1 : 0;
+      const a = imageData.data[srcIndex + 3];
+
+      // Handle transparency: treat transparent pixels as white
+      let bit;
+      if (a < 128) {
+        bit = 0; // White
+      } else {
+        const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+        bit = luminance < 128 ? 1 : 0; // Black if luminance < 128
+      }
+
       bitBuffer = (bitBuffer << 1) | bit;
       bitCount++;
 
@@ -67,6 +76,7 @@ export function imageDataToBMP(imageData, width, height) {
       }
     }
 
+    // If the last byte is not complete, pad it with zeros (white)
     if (bitCount > 0) {
       bitBuffer = bitBuffer << (8 - bitCount);
       bmpBuffer[rowOffset++] = bitBuffer;

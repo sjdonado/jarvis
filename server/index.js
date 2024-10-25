@@ -61,8 +61,7 @@ async function sendBmpImage() {
     const bmpBuffer = imageDataToBMP(imageData, WIDTH, HEIGHT);
 
     // Save BMP for debugging
-    const filePath = path.join(__dirname, "system_usage.bmp");
-    fs.writeFileSync(filePath, bmpBuffer);
+    fs.writeFileSync("/tmp/system_usage.bmp", bmpBuffer);
     console.log(`BMP image saved to disk at ${filePath}`);
 
     // Publish BMP via MQTT
@@ -78,4 +77,4 @@ async function sendBmpImage() {
   }
 }
 
-setInterval(sendBmpImage, 5000); // every 5 seconds
+setInterval(sendBmpImage, 1500); // every 1,5 seconds
