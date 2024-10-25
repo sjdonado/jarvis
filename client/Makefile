@@ -15,7 +15,7 @@ ifeq ($(EPD), epd2in13V4)
 endif
 
 # Target executable
-TARGET = epd
+TARGET = jarvis
 SRC_FILE ?= main.c
 
 # Define the source files required for the project
@@ -32,7 +32,7 @@ CC = gcc
 CFLAGS = -Wall -g -O -ffunction-sections -fdata-sections -D $(EPD) -D USE_DEV_LIB -D RPI
 
 # Library dependencies (use libgpiod for GPIO)
-LIBS = -lm -lgpiod -lcurl -lcoap-2
+LIBS = -lm -lgpiod -lpaho-mqtt3c -lpthread -lwiringPi
 
 # Compile the program
 all: $(TARGET)
