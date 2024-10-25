@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
 #include "MQTTClient.h"
 
 #include "DEV_Config.h"
@@ -19,6 +20,12 @@
 // Global variables
 UBYTE *BlackImage = NULL;
 MQTTClient client;
+volatile sig_atomic_t exit_requested = 0; // Flag for exiting the main loop
+
+// Function to handle SIGINT (Ctrl+C)
+void handle_sigint(int sig) {
+    exit_requested = 1;
+}
 
 // Function to check BMP dimensions
 int GUI_BMPfile_CheckDimensions(const char *bmp_file, int expected_width, int expected_height) {
@@ -58,25 +65,6 @@ void cleanup_and_exit(int exit_code) {
     DEV_Module_Exit();
 
     exit(exit_code);
-}
-
-// Function to check for ENTER key press to exit the program
-int check_for_enter_press() {
-    fd_set read_fds;
-    struct timeval tv;
-    FD_ZERO(&read_fds);
-    FD_SET(STDIN_FILENO, &read_fds);
-
-    tv.tv_sec = 0;
-    tv.tv_usec = 0;
-
-    if (select(STDIN_FILENO + 1, &read_fds, NULL, NULL, &tv) > 0) {
-        char buf[1];
-        if (read(STDIN_FILENO, buf, 1) > 0 && buf[0] == '\n') {
-            return 1;
-        }
-    }
-    return 0;
 }
 
 // MQTT message arrived callback
@@ -208,12 +196,11 @@ int main(void) {
 
     printf("Subscribed to topic %s\n", MQTT_TOPIC);
 
-    printf("Press ENTER to exit...\n");
-    while (1) {
-        if (check_for_enter_press()) {
-            break;
-        }
+    // Register the signal handler for Ctrl+C
+    signal(SIGINT, handle_sigint);
 
+    printf("Running... Press Ctrl+C to exit.\n");
+    while (!exit_requested) {
         // Sleep for a short while to reduce CPU usage
         usleep(500000); // Sleep for 500 milliseconds
     }

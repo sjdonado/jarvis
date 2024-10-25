@@ -48,7 +48,7 @@ npm start
 ```bash
 sudo make clean && sudo make
 
-export MQTT_ADDRESS="tcp://your-mqtt-broker-address:1883"
+export MQTT_ADDRESS="mqtt://localhost:1883"
 export MQTT_CLIENTID="YourUniqueClientID"
 ./jarvis
 ```
