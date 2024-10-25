@@ -78,4 +78,4 @@ async function sendBmpImage() {
   }
 }
 
-setInterval(sendBmpImage, 60000);
+setInterval(sendBmpImage, 5000); // every 5 seconds
