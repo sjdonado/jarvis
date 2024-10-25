@@ -1,0 +1,191 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include "MQTTClient.h"
+
+#include "DEV_Config.h"
+#include "Debug.h"
+#include "EPD_2in13_V4.h"
+#include "GUI_Paint.h"
+#include "GUI_BMPfile.h"
+#include "fonts.h"
+
+#define MQTT_TOPIC     "display"
+#define QOS            1
+#define TIMEOUT        10000L
+
+// Global variables
+UBYTE *BlackImage = NULL;
+MQTTClient client;
+
+// Function to clean up and turn off the screen
+void cleanup_and_exit(int exit_code) {
+    printf("Turning off the screen...\n");
+
+    // Disconnect MQTT client if connected
+    MQTTClient_disconnect(client, 10000);
+    MQTTClient_destroy(&client);
+
+    if (BlackImage) {
+        free(BlackImage);
+        BlackImage = NULL;
+    }
+    EPD_2in13_V4_Clear();
+    EPD_2in13_V4_Sleep();
+    DEV_Module_Exit();
+
+    exit(exit_code);
+}
+
+// Function to check for ENTER key press to exit the program
+int check_for_enter_press() {
+    fd_set read_fds;
+    struct timeval tv;
+    FD_ZERO(&read_fds);
+    FD_SET(STDIN_FILENO, &read_fds);
+
+    tv.tv_sec = 0;
+    tv.tv_usec = 0;
+
+    if (select(STDIN_FILENO + 1, &read_fds, NULL, NULL, &tv) > 0) {
+        char buf[1];
+        if (read(STDIN_FILENO, buf, 1) > 0 && buf[0] == '\n') {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+// MQTT message arrived callback
+int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *message) {
+    printf("Message arrived\n");
+    printf("     topic: %s\n", topicName);
+
+    if (message->payloadlen <= 0) {
+        printf("Empty message received.\n");
+        MQTTClient_freeMessage(&message);
+        MQTTClient_free(topicName);
+        return 1;
+    }
+
+    // Save the received BMP image to a temporary file
+    const char *bmp_file = "/tmp/received_image.bmp";
+    FILE *fp = fopen(bmp_file, "wb");
+    if (!fp) {
+        fprintf(stderr, "Failed to open file for writing.\n");
+        MQTTClient_freeMessage(&message);
+        MQTTClient_free(topicName);
+        return 1;
+    }
+
+    fwrite(message->payload, 1, message->payloadlen, fp);
+    fclose(fp);
+
+    // Display the BMP image on the e-paper display
+    Paint_SelectImage(BlackImage);
+    GUI_ReadBmp(bmp_file, 0, 0);
+    EPD_2in13_V4_Display(BlackImage);
+
+    printf("Image displayed on e-paper.\n");
+
+    MQTTClient_freeMessage(&message);
+    MQTTClient_free(topicName);
+    return 1;
+}
+
+// MQTT connection lost callback
+void connlost(void *context, char *cause) {
+    printf("\nConnection lost\n");
+    printf("     cause: %s\n", cause);
+}
+
+// MQTT delivery complete callback
+void delivered(void *context, MQTTClient_deliveryToken dt) {
+    // Not used in this client since we are only subscribing
+}
+
+int main(void) {
+    // Get MQTT_ADDRESS and MQTT_CLIENTID from environment variables
+    const char *MQTT_ADDRESS = getenv("MQTT_ADDRESS");
+    const char *MQTT_CLIENTID = getenv("MQTT_CLIENTID");
+
+    // Use default values if environment variables are not set
+    if (!MQTT_ADDRESS) {
+        MQTT_ADDRESS = "tcp://localhost:1883";  // Default MQTT broker address
+    }
+    if (!MQTT_CLIENTID) {
+        MQTT_CLIENTID = "EPaperDisplayClient";  // Default client ID
+    }
+
+    printf("Using MQTT_ADDRESS: %s\n", MQTT_ADDRESS);
+    printf("Using MQTT_CLIENTID: %s\n", MQTT_CLIENTID);
+
+    // Initialize the e-paper display
+    if (DEV_Module_Init() != 0) {
+        return -1;
+    }
+
+    EPD_2in13_V4_Init();
+    EPD_2in13_V4_Clear();
+    DEV_Delay_ms(100);
+
+    UWORD Imagesize =
+        ((EPD_2in13_V4_WIDTH % 8 == 0) ? (EPD_2in13_V4_WIDTH / 8)
+                                       : (EPD_2in13_V4_WIDTH / 8 + 1)) *
+        EPD_2in13_V4_HEIGHT;
+    BlackImage = (UBYTE *)malloc(Imagesize);
+    if (!BlackImage) {
+        fprintf(stderr, "Failed to allocate memory for BlackImage.\n");
+        cleanup_and_exit(-1);
+    }
+
+    Paint_NewImage(BlackImage, EPD_2in13_V4_WIDTH, EPD_2in13_V4_HEIGHT, ROTATE_90,
+                   WHITE);
+    Paint_SelectImage(BlackImage);
+    Paint_Clear(WHITE);
+
+    // Initial message
+    Paint_DrawString_EN(0, 0, "Waiting for image...", &Font16, WHITE, BLACK);
+    EPD_2in13_V4_Display(BlackImage);
+
+    // MQTT setup
+    MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
+    int rc;
+
+    MQTTClient_create(&client, MQTT_ADDRESS, MQTT_CLIENTID,
+                      MQTTCLIENT_PERSISTENCE_NONE, NULL);
+    conn_opts.keepAliveInterval = 20;
+    conn_opts.cleansession = 1;
+
+    MQTTClient_setCallbacks(client, NULL, connlost, msgarrvd, delivered);
+
+    if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS) {
+        printf("Failed to connect to MQTT server, return code %d\n", rc);
+        cleanup_and_exit(-1);
+    }
+
+    printf("Connected to MQTT server at %s\n", MQTT_ADDRESS);
+
+    MQTTClient_subscribe(client, MQTT_TOPIC, QOS);
+
+    printf("Subscribed to topic %s\n", MQTT_TOPIC);
+
+    printf("Press ENTER to exit...\n");
+    while (1) {
+        if (check_for_enter_press()) {
+            break;
+        }
+
+        // Sleep for a short while to reduce CPU usage
+        usleep(500000); // Sleep for 500 milliseconds
+    }
+
+    // Disconnect MQTT client
+    MQTTClient_disconnect(client, 10000);
+    MQTTClient_destroy(&client);
+
+    cleanup_and_exit(0);
+
+    return 0;
+}
