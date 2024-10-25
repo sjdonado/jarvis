@@ -1,0 +1,22 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 3000:3000
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+      MQTT_SERVER_URL: mqtt://127.0.0.1:1883
+    depends_on:
+      - mqtt
+  mqtt:
+    image: eclipse-mosquitto
+    ports:
+      - 1883:1883
+      - 9001:9001
+    volumes: 
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
