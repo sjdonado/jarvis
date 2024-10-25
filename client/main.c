@@ -166,7 +166,7 @@ int main(void) {
         cleanup_and_exit(-1);
     }
 
-    Paint_NewImage(BlackImage, EPD_2in13_V4_WIDTH, EPD_2in13_V4_HEIGHT, 0, WHITE);
+    Paint_NewImage(BlackImage, EPD_2in13_V4_WIDTH, EPD_2in13_V4_HEIGHT, ROTATE_90, WHITE);
     Paint_SelectImage(BlackImage);
     Paint_Clear(WHITE);
 
