@@ -98,18 +98,13 @@ int msgarrvd(void *context, char *topicName, int topicLen,
   // Debug log to verify file save success
   printf("BMP image saved to %s\n", bmp_file);
 
-  // Initialize the image buffer for the new image
-  Paint_NewImage(BlackImage, EPD_2in13_V4_WIDTH, EPD_2in13_V4_HEIGHT, 0, WHITE);
-  Paint_SelectImage(BlackImage);
-  Paint_Clear(WHITE);
-
   // Check BMP dimensions before displaying
   int expected_width = EPD_2in13_V4_WIDTH;
   int expected_height = EPD_2in13_V4_HEIGHT;
 
   if (GUI_BMPfile_CheckDimensions(bmp_file, expected_width, expected_height)) {
     GUI_ReadBmp(bmp_file, 0, 0);
-    EPD_2in13_V4_Display_Fast(BlackImage);
+    EPD_2in13_V4_Display_Partial(BlackImage);
     printf("Image displayed on e-paper.\n");
   } else {
     fprintf(stderr,
@@ -160,14 +155,10 @@ int main(void) {
     cleanup_and_exit(-1);
   }
 
-  Paint_NewImage(BlackImage, EPD_2in13_V4_WIDTH, EPD_2in13_V4_HEIGHT, ROTATE_90,
-                 WHITE);
+  // Initialize the image buffer for the new image
+  Paint_NewImage(BlackImage, EPD_2in13_V4_WIDTH, EPD_2in13_V4_HEIGHT, 0, WHITE);
   Paint_SelectImage(BlackImage);
   Paint_Clear(WHITE);
-
-  // Initial message
-  Paint_DrawString_EN(0, 0, "Waiting for image...", &Font16, WHITE, BLACK);
-  EPD_2in13_V4_Display(BlackImage);
 
   // MQTT setup
   MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
