@@ -3,7 +3,7 @@ import path from "path";
 
 import { createCanvas, registerFont } from "canvas";
 
-import { client, DISPLAY_TOPIC } from "./mqtt";
+import { getClient, DISPLAY_TOPIC } from "./mqtt";
 import { imageDataToBMP } from "../lib";
 
 const EPD_2in13_V4_WIDTH = 122;
@@ -11,10 +11,12 @@ const EPD_2in13_V4_HEIGHT = 250;
 const STATUSBAR_HEIGHT = 20;
 
 export function displayMessage(message) {
+  const client = getClient();
+
   const HEIGHT = EPD_2in13_V4_WIDTH - STATUSBAR_HEIGHT;
   const WIDTH = EPD_2in13_V4_HEIGHT;
 
-  const fontPath = path.join(__dirname, "fonts", "Jersey15-Regular.ttf");
+  const fontPath = path.join("./fonts/Jersey15-Regular.ttf");
   registerFont(fontPath, { family: "Jersey15" });
 
   const canvas = createCanvas(WIDTH, HEIGHT);

@@ -6,10 +6,17 @@ export const DISPLAY_TOPIC = "display";
 
 const MQTT_SERVER = process.env.MQTT_SERVER_URL || "mqtt://localhost:1883";
 
-export let client;
+let _client;
+
+export const getClient = () => {
+  if (_client) return _client;
+  _client = mqtt.connect(MQTT_SERVER);
+
+  return _client;
+};
 
 export function init() {
-  client = mqtt.connect(MQTT_SERVER);
+  const client = getClient();
 
   client.on("connect", () => {
     console.log("Connected to MQTT broker at", MQTT_SERVER);
@@ -23,6 +30,8 @@ export function init() {
 }
 
 function refreshStatusBar() {
+  const client = getClient();
+
   const cpuLoad = os.loadavg()[0].toFixed(2); // 1-minute load average
   const totalMem = os.totalmem() / (1024 * 1024); // MB
   const freeMem = os.freemem() / (1024 * 1024); // MB

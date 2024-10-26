@@ -94,10 +94,7 @@ void update_statusbar(const char *status_text) {
 void update_display_area(const char *bmp_file) {
   printf("Updating display area\n");
 
-  const int display_area_x = SCREEN_WIDTH - STATUSBAR_HEIGHT;
-  const int display_area_y = SCREEN_HEIGHT;
-
-  Paint_ClearWindows(0, 0, display_area_x, display_area_y, WHITE);
+  Paint_ClearWindows(0 + STATUSBAR_HEIGHT, 0, SCREEN_WIDTH, SCREEN_HEIGHT, WHITE);
 
   if (GUI_ReadBmp(bmp_file, 0, 0) != 0) {
     fprintf(stderr, "Failed to read BMP image.\n");
@@ -207,8 +204,6 @@ int main(void) {
   Paint_NewImage(BlackImage, SCREEN_WIDTH, SCREEN_HEIGHT, ROTATE_90, WHITE);
   Paint_SelectImage(BlackImage);
   Paint_Clear(WHITE);
-
-  EPD_2in13_V4_Display_Base(BlackImage);
 
   // MQTT setup
   MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
