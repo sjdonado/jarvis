@@ -7,9 +7,13 @@ ARG MQTT_PASSWORD=
 ENV MQTT_USERNAME=${MQTT_USERNAME}
 ENV MQTT_PORT=${MQTT_PORT}
 
+WORKDIR /usr/mosquitto
+
 EXPOSE 1883/tcp
 
-RUN mkdir -p /etc/usr/mosquitto && \
-    mosquitto_passwd -c -b /etc/usr/mosquitto/passwd "${MQTT_USERNAME}" "${MQTT_PASSWORD}"
+RUN mosquitto_passwd -c -b passwd "${MQTT_USERNAME}" "${MQTT_PASSWORD}" && \
+    chmod 644 passwd
 
-CMD mosquitto -c /etc/mosquitto/mosquitto.conf
+COPY mosquitto.conf mosquitto.conf
+
+CMD mosquitto -c ./mosquitto.conf
