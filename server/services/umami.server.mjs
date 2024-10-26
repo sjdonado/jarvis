@@ -19,7 +19,7 @@ function parseUnamiUri(uri) {
 
 const { username, password, apiUrl } = parseUnamiUri(process.env.UNAMI_URI);
 
-let _token, _tokenLastFetch, _websites, _stats, _statsLastFetch;
+let _token, _tokenLastFetch, _websites, _websitesLastFetch, _stats, _statsLastFetch;
 
 async function getBearerToken() {
   const now = Date.now();
@@ -44,13 +44,20 @@ async function getBearerToken() {
 
   const data = await response.json();
   _token = data.token;
-  _tokenLastFetch = now; // Update token fetch time
+  _tokenLastFetch = now;
+
+  console.log("[umami] token updated:", _token);
 
   return _token;
 }
 
 async function listWebsites(token) {
-  if (_websites) return _websites;
+  const now = Date.now();
+
+  // Refresh website list every 1 week
+  if (_websites && _websitesLastFetch && now - _websitesLastFetch < 7 * 24 * 60 * 60 * 1000) {
+    return _websites;
+  }
 
   const response = await fetch(`${apiUrl}/websites`, {
     headers: {
@@ -64,8 +71,10 @@ async function listWebsites(token) {
   }
 
   const { data } = await response.json();
-
   _websites = data;
+  _websitesLastFetch = now;
+
+  console.log("[umami] website list updated:", _websites);
 
   return _websites;
 }
