@@ -13,21 +13,21 @@ export const getClient = () => {
   if (_client) return _client;
   _client = mqtt.connect(MQTT_SERVER);
 
-  return _client;
-};
-
-export function init() {
-  const client = getClient();
-
-  client.on("connect", () => {
+  _client.on("connect", () => {
     console.log("Connected to MQTT broker");
     refreshStatusBar();
     setInterval(refreshStatusBar, 1500);
   });
 
-  client.on("error", (err) => {
+  _client.on("error", (err) => {
     console.error("MQTT error:", err);
   });
+
+  return _client;
+};
+
+export function init() {
+  getClient();
 }
 
 function refreshStatusBar() {
