@@ -33,13 +33,14 @@ MQTTClient client = NULL;
 volatile sig_atomic_t exit_requested = 0; // Flag for exiting the main loop
 
 void update_statusbar(const char *status_text) {
+  if (!BlackImage) {
+    fprintf(stderr, "BlackImage is not initialized\n");
+    return;
+  }
+
   printf("Updating status bar with text: %s\n", status_text);
-
   const int statusbar_y = 0;
-  const int statusbar_x = 0;
   sFONT *font = &Font12;
-
-  // Calculate text width for right alignment
   int text_width = strlen(status_text) * font->Width;
   int text_x = SCREEN_HEIGHT - text_width - 5;
   int text_y = statusbar_y + (STATUSBAR_HEIGHT - font->Height) / 2;
@@ -52,11 +53,14 @@ void update_statusbar(const char *status_text) {
 }
 
 void update_display_area(const char *bmp_file) {
-  printf("Updating display area\n");
+  if (!BlackImage) {
+    fprintf(stderr, "BlackImage is not initialized\n");
+    return;
+  }
 
+  printf("Updating display area\n");
   int display_start_y = STATUSBAR_HEIGHT;
 
-  // Clear only the area below the status bar
   Paint_ClearWindows(0, display_start_y, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1,
                      WHITE);
 
@@ -102,15 +106,12 @@ int msgarrvd(void *context, char *topicName, int topicLen,
   }
 
   if (strcmp(topicName, STATUSBAR_TOPIC) == 0) {
-    // Handle status bar update
     char status_text[256];
     snprintf(status_text, sizeof(status_text), "%.*s", message->payloadlen,
              (char *)message->payload);
-
     update_statusbar(status_text);
   } else if (strcmp(topicName, DISPLAY_TOPIC) == 0) {
     const char *bmp_file = "/tmp/jarvis_display.bmp";
-
     FILE *fp = fopen(bmp_file, "wb");
     if (!fp) {
       fprintf(stderr, "Failed to open file for writing.\n");
@@ -118,25 +119,15 @@ int msgarrvd(void *context, char *topicName, int topicLen,
       MQTTClient_free(topicName);
       return 1;
     }
-
     fwrite(message->payload, 1, message->payloadlen, fp);
     fclose(fp);
 
-    // Debug log to verify file save success
     printf("BMP image saved to %s\n", bmp_file);
-
-    int expected_width = SCREEN_HEIGHT;
-    int expected_height = SCREEN_WIDTH - STATUSBAR_HEIGHT;
-
-    if (GUI_BMPfile_CheckDimensions(bmp_file, expected_width,
-                                    expected_height)) {
+    if (GUI_BMPfile_CheckDimensions(bmp_file, SCREEN_HEIGHT,
+                                    SCREEN_WIDTH - STATUSBAR_HEIGHT)) {
       update_display_area(bmp_file);
-      printf("Image displayed on e-paper.\n");
     } else {
-      fprintf(
-          stderr,
-          "Error: BMP dimensions do not match display area. Expected %dx%d.\n",
-          expected_width, expected_height);
+      fprintf(stderr, "Error: BMP dimensions do not match display area\n");
     }
   } else {
     printf("Unknown topic received: %s\n", topicName);
@@ -156,20 +147,28 @@ void delivered(void *context, MQTTClient_deliveryToken dt) {
   // Not used in this client since we are only subscribing
 }
 
-int parse_mqtt_uri(const char *uri, char *host, char *username,
+int parse_mqtt_uri(const char *uri, char *broker_uri, char *username,
                    char *password) {
-  if (!uri || !host || !username || !password)
+  if (!uri || !broker_uri || !username || !password) {
     return -1;
+  }
+
   const char *proto_end = strstr(uri, "://");
   if (!proto_end) {
     fprintf(stderr, "Invalid MQTT URI\n");
     return -1;
   }
+
+  // Copy the protocol (e.g., "ssl://") into broker_uri
+  int proto_length = proto_end - uri + 3; // Including "://"
+  strncpy(broker_uri, uri, proto_length);
+  broker_uri[proto_length] = '\0';
+
   const char *auth_start = proto_end + 3;
   const char *auth_end = strchr(auth_start, '@');
   const char *host_start = auth_end ? auth_end + 1 : auth_start;
-  const char *host_end = strchr(host_start, '/');
 
+  // Capture username and password if present
   if (auth_end) {
     const char *user_end = strchr(auth_start, ':');
     if (user_end && user_end < auth_end) {
@@ -177,55 +176,77 @@ int parse_mqtt_uri(const char *uri, char *host, char *username,
       username[user_end - auth_start] = '\0';
       strncpy(password, user_end + 1, auth_end - user_end - 1);
       password[auth_end - user_end - 1] = '\0';
+    } else {
+      fprintf(stderr, "Invalid credentials in MQTT URI\n");
+      return -1;
     }
-  }
-  if (host_end) {
-    strncpy(host, host_start, host_end - host_start);
-    host[host_end - host_start] = '\0';
   } else {
-    strcpy(host, host_start);
+    username[0] = '\0';
+    password[0] = '\0';
   }
+
+  // Append the host and port to broker_uri
+  strcat(broker_uri, host_start);
+
   return 0;
 }
 
 int setup_mqtt_client(const char *mqtt_uri, MQTTClient *client) {
-  char host[256] = {0}, username[256] = {0}, password[256] = {0};
-  int port = 1884;
+  char broker_uri[256] = {0}, username[256] = {0}, password[256] = {0};
   int use_tls = 0;
 
-  // Parse URI for host, username, password, and port
-  if (parse_mqtt_uri(mqtt_uri, host, username, password) != 0) {
+  if (parse_mqtt_uri(mqtt_uri, broker_uri, username, password) != 0) {
     fprintf(stderr, "Failed to parse MQTT URI\n");
     return -1;
   }
 
-  // Check if URI specifies TLS
-  if (strstr(mqtt_uri, "mqtts://")) {
+  // Check if the protocol indicates TLS
+  if (strncmp(broker_uri, "ssl://", 6) == 0 ||
+      strncmp(broker_uri, "tls://", 6) == 0) {
     use_tls = 1;
-    printf("Connecting to MQTT broker at %s with TLS support\n", host);
-  } else {
-    printf("Connecting to MQTT broker at %s\n", host);
-  }
-
-  // If port is specified in URI, override the default
-  const char *port_str = strchr(host, ':');
-  if (port_str) {
-    port = atoi(port_str + 1); // Convert port substring to integer
-    *strchr(host, ':') = '\0'; // Remove port from host
   }
 
   MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
   MQTTClient_SSLOptions ssl_opts = MQTTClient_SSLOptions_initializer;
+
   conn_opts.username = username;
   conn_opts.password = password;
+  conn_opts.keepAliveInterval = 10;
+  conn_opts.cleansession = 1;
 
-  // Enable SSL options if using TLS
   if (use_tls) {
+    /* ssl_opts.enableServerCertAuth = 1; */
+    /* ssl_opts.verify = 1; // Verify the server's certificate */
+    /* ssl_opts.sslVersion = 3; */
+    /* ssl_opts.trustStore = NULL; // Use system default CA certificates */
+    /* ssl_opts.CApath = NULL; */
+    /* ssl_opts.keyStore = NULL; */
+    /* ssl_opts.privateKey = NULL; */
+    /* ssl_opts.privateKeyPassword = NULL; */
+    /* ssl_opts.enabledCipherSuites = NULL; */
+
+    ssl_opts.verify = 1;
+    ssl_opts.CApath = NULL;
+    ssl_opts.keyStore = NULL;
+    ssl_opts.trustStore = NULL;
+    ssl_opts.privateKey = NULL;
+    ssl_opts.privateKeyPassword = NULL;
+    ssl_opts.enabledCipherSuites = NULL;
+
     conn_opts.ssl = &ssl_opts;
-    ssl_opts.enableServerCertAuth = 0; // Set to 1 if a CA cert is used
+
+    printf("Connecting to MQTT broker at %s with TLS 1.2 support\n",
+           broker_uri);
+  } else {
+    printf("Connecting to MQTT broker at %s\n", broker_uri);
   }
 
-  int rc = MQTTClient_create(client, host, CLIENT_ID,
+  // Debugging statements
+  printf("Broker URI: %s\n", broker_uri);
+  printf("Username: %s\n", username);
+  // Avoid printing the password for security reasons
+
+  int rc = MQTTClient_create(client, broker_uri, CLIENT_ID,
                              MQTTCLIENT_PERSISTENCE_NONE, NULL);
   if (rc != MQTTCLIENT_SUCCESS) {
     fprintf(stderr, "Failed to create MQTT client, return code %d\n", rc);
@@ -242,7 +263,7 @@ int setup_mqtt_client(const char *mqtt_uri, MQTTClient *client) {
     return rc;
   }
 
-  printf("Connected to MQTT server at %s:%d\n", host, port);
+  printf("Connected to MQTT server at %s\n", broker_uri);
 
   return 0;
 }
@@ -250,6 +271,7 @@ int setup_mqtt_client(const char *mqtt_uri, MQTTClient *client) {
 void cleanup_and_exit(int exit_code) {
   if (client) {
     printf("Disconnecting from MQTT server...\n");
+
     MQTTClient_disconnect(client, 10000);
     MQTTClient_destroy(&client);
   }

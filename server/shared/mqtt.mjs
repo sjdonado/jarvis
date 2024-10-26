@@ -14,7 +14,7 @@ export const getClient = () => {
   _client = mqtt.connect(MQTT_SERVER);
 
   _client.on("connect", () => {
-    console.log("Connected to MQTT broker");
+    console.log("Connected to MQTT broker", MQTT_SERVER);
     refreshStatusBar();
     setInterval(refreshStatusBar, 1500);
   });

@@ -6,7 +6,7 @@
 sudo apt update
 sudo apt-get update
 
-sudo apt-get install python3-pip gpiod libgpiod-dev libpaho-mqtt-dev
+sudo apt-get install python3-pip gpiod libgpiod-dev libpaho-mqtt-dev libssl-dev
 
 sudo locale-gen en_US.UTF-8
 sudo dpkg-reconfigure locales
