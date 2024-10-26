@@ -5,7 +5,9 @@ import { createCanvas, registerFont } from "canvas";
 
 import { imageDataToBMP, drawCenteredText } from "./canvas.server.mjs";
 import { getClient, DISPLAY_TOPIC, STATUSBAR_TOPIC } from "./mqtt.server.mjs";
-import { zenquotesGetRandom } from "./services.server.mjs";
+
+import { getRandomQuote } from "../services/zenquotes.server.mjs";
+import { fetchUmamiData } from "../services/umami.server.mjs";
 
 import { WIDTH, HEIGHT } from "./constants.mjs";
 
@@ -15,13 +17,15 @@ export async function systemUsageSetup() {
 
     const cpuLoad = os.loadavg()[0]; // 1-minute load average
     const cpuCores = os.cpus().length; // Number of CPU cores
-    const cpuUsagePercentage = ((cpuLoad / cpuCores) * 100).toFixed(2);
+    const cpuUsagePercentage = ((cpuLoad / cpuCores) * 100).toFixed(2).padStart(5, "0");
 
     const totalMem = os.totalmem() / (1024 * 1024);
     const freeMem = os.freemem() / (1024 * 1024);
     const usedMem = (totalMem - freeMem).toFixed(2);
 
-    const statusText = `${usedMem} MB | ${cpuUsagePercentage}%`;
+    const { visitors } = await fetchUmamiData();
+
+    const statusText = `${visitors} users | ${usedMem} MB | ${cpuUsagePercentage}%`;
 
     client.publish(STATUSBAR_TOPIC, statusText, { qos: 0, retain: false }, (err) => {
       if (err) {
@@ -78,7 +82,7 @@ export async function scheduleRandomQuotes(intervalMinutes) {
   const intervalMs = intervalMinutes * 60 * 1000;
 
   scheduleIntervalId = setInterval(async () => {
-    const quote = await zenquotesGetRandom();
+    const quote = await getRandomQuote();
 
     if (quote) {
       await sendMessage(quote);

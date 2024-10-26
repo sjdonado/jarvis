@@ -1,4 +1,6 @@
-export async function zenquotesGetRandom() {
+import fetch from 'node-fetch';
+
+export async function getRandomQuote() {
   try {
     const response = await fetch("https://zenquotes.io/api/random");
     const data = await response.json();
@@ -15,3 +17,4 @@ export async function zenquotesGetRandom() {
 
   return null;
 }
+
