@@ -45,7 +45,7 @@ function refreshStatusBar() {
     if (err) {
       console.error("Failed to publish system usage:", err);
     } else {
-      console.log("System usage BMP image sent to topic", STATUSBAR_TOPIC);
+      // console.log("System usage BMP image sent to topic", STATUSBAR_TOPIC);
     }
   });
 }

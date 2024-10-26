@@ -36,7 +36,7 @@ export function sendMessage(message) {
       if (err) {
         console.error("Failed to publish welcome BMP image:", err);
       } else {
-        console.log("Welcome BMP image sent to topic", DISPLAY_TOPIC);
+        // console.log("Welcome BMP image sent to topic", DISPLAY_TOPIC);
       }
     });
 

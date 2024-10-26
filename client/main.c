@@ -38,7 +38,7 @@ void update_statusbar(const char *status_text) {
     return;
   }
 
-  printf("Updating status bar with text: %s\n", status_text);
+  /* printf("Updating status bar with text: %s\n", status_text); */
   const int statusbar_y = 0;
   sFONT *font = &Font12;
   int text_width = strlen(status_text) * font->Width;
@@ -58,7 +58,7 @@ void update_display_area(const char *bmp_file) {
     return;
   }
 
-  printf("Updating display area\n");
+  /* printf("Updating display area\n"); */
   int display_start_y = STATUSBAR_HEIGHT;
 
   Paint_ClearWindows(0, display_start_y, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1,
@@ -160,7 +160,7 @@ int parse_mqtt_uri(const char *uri, char *broker_uri, char *username,
   }
 
   // Copy the protocol (e.g., "ssl://") into broker_uri
-  int proto_length = proto_end - uri + 3; // Including "://"
+  int proto_length = proto_end - uri + 3;
   strncpy(broker_uri, uri, proto_length);
   broker_uri[proto_length] = '\0';
 
