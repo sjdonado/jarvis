@@ -2,19 +2,18 @@ import os from "os";
 
 import mqtt from "mqtt";
 
+export const MQTT_ADDRESS = process.env.MQTT_ADDRESS || "mqtt://localhost:1883";
 export const STATUSBAR_TOPIC = "statusbar";
 export const DISPLAY_TOPIC = "display";
 
 let _client;
 
 export const getClient = () => {
-  const MQTT_SERVER = process.env.MQTT_ADDRESS || "mqtt://localhost:1883";
-
   if (_client) return _client;
-  _client = mqtt.connect(MQTT_SERVER);
+  _client = mqtt.connect(MQTT_ADDRESS);
 
   _client.on("connect", () => {
-    console.log("Connected to MQTT broker", MQTT_SERVER);
+    console.log("Connected to MQTT broker", MQTT_ADDRESS);
     refreshStatusBar();
     setInterval(refreshStatusBar, 1500);
   });
@@ -33,12 +32,15 @@ export function init() {
 function refreshStatusBar() {
   const client = getClient();
 
-  const cpuLoad = os.loadavg()[0].toFixed(2); // 1-minute load average
-  const totalMem = os.totalmem() / (1024 * 1024); // MB
-  const freeMem = os.freemem() / (1024 * 1024); // MB
-  const usedMem = (totalMem - freeMem).toFixed(2); // Total memory used in MB
+  const cpuLoad = os.loadavg()[0]; // 1-minute load average
+  const cpuCores = os.cpus().length; // Number of CPU cores
+  const cpuUsagePercentage = ((cpuLoad / cpuCores) * 100).toFixed(2);
 
-  const statusText = `${usedMem} MB | ${cpuLoad}%`;
+  const totalMem = os.totalmem() / (1024 * 1024);
+  const freeMem = os.freemem() / (1024 * 1024);
+  const usedMem = (totalMem - freeMem).toFixed(2);
+
+  const statusText = `${usedMem} MB | CPU ${cpuUsagePercentage}%`;
 
   client.publish(STATUSBAR_TOPIC, statusText, { qos: 1, retain: false }, (err) => {
     if (err) {

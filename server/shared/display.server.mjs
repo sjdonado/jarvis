@@ -2,15 +2,12 @@ import path from "path";
 
 import { createCanvas, registerFont } from "canvas";
 
-import { getClient, DISPLAY_TOPIC } from "./mqtt";
 import { imageDataToBMP, drawCenteredText } from "../lib";
 
-const EPD_2in13_V4_WIDTH = 122;
-const EPD_2in13_V4_HEIGHT = 250;
-const STATUSBAR_HEIGHT = 20;
+import { getClient, DISPLAY_TOPIC } from "./mqtt.server";
+import { zenquotesGetRandom } from "./services.server";
 
-export const HEIGHT = EPD_2in13_V4_WIDTH - STATUSBAR_HEIGHT;
-export const WIDTH = EPD_2in13_V4_HEIGHT;
+import { WIDTH, HEIGHT } from "./constants";
 
 export function sendMessage(message) {
   const client = getClient();
@@ -44,4 +41,23 @@ export function sendMessage(message) {
   } catch (err) {
     console.error("Failed to create BMP buffer for welcome message:", err);
   }
+}
+
+let scheduleIntervalId = null;
+
+export function scheduleRandomQuotes(intervalMinutes) {
+  if (scheduleIntervalId) {
+    clearInterval(scheduleIntervalId);
+  }
+
+  const intervalMs = intervalMinutes * 60 * 1000;
+
+  scheduleIntervalId = setInterval(async () => {
+    const quote = await zenquotesGetRandom();
+
+    if (quote) {
+      sendMessage(quote);
+      console.log("Scheduled quote sent:", quote);
+    }
+  }, intervalMs);
 }

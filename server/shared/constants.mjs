@@ -1,0 +1,6 @@
+const EPD_2in13_V4_WIDTH = 122;
+const EPD_2in13_V4_HEIGHT = 250;
+const STATUSBAR_HEIGHT = 20;
+
+export const HEIGHT = EPD_2in13_V4_WIDTH - STATUSBAR_HEIGHT;
+export const WIDTH = EPD_2in13_V4_HEIGHT;
