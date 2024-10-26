@@ -9,8 +9,7 @@ ENV MQTT_PORT=${MQTT_PORT}
 
 EXPOSE 1883/tcp
 
-COPY mosquitto.conf /etc/mosquitto/mosquitto.conf
-
-RUN mosquitto_passwd -c -b /etc/mosquitto/passwd "${MQTT_USERNAME}" "${MQTT_PASSWORD}"
+RUN mkdir -p /etc/usr/mosquitto && \
+    mosquitto_passwd -c -b /etc/usr/mosquitto/passwd "${MQTT_USERNAME}" "${MQTT_PASSWORD}"
 
 CMD mosquitto -c /etc/mosquitto/mosquitto.conf
