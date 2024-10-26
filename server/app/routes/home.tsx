@@ -48,8 +48,9 @@ export const loader: LoaderFunction = async ({ request }) => {
 export default function Index() {
   const actionData = useActionData<typeof action>();
   const loaderData = useLoaderData<typeof loader>();
+
   const [message, setMessage] = useState("");
-  const [scheduleInterval, setScheduleInterval] = useState("");
+  const [scheduleInterval, setScheduleInterval] = useState(loaderData?.scheduledInterval ?? "");
 
   useEffect(() => {
     if (actionData?.message) {
@@ -83,6 +84,7 @@ export default function Index() {
           <button type="submit" className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600">
             Submit
           </button>
+          {actionData?.message && <p className="text-green-500 text-xs">Message sent!</p>}
         </Form>
         <div className="mt-4">
           <h2 className="text-lg font-semibold">Schedule Random Quotes</h2>
@@ -100,13 +102,12 @@ export default function Index() {
             </button>
           </Form>
           {loaderData?.scheduledInterval && (
-            <p className="text-green-500 mt-2">
+            <p className="text-xs text-green-500 mt-2">
               Random quotes are being sent every {loaderData.scheduledInterval} minutes.
             </p>
           )}
         </div>
-        {actionData?.message && <p className="text-green-500">Message sent!</p>}
-        <Link to="/logout" className="text-sm text-blue-500 hover:underline">
+        <Link to="/logout" className="text-sm text-red-500 underline">
           Logout
         </Link>
       </div>
