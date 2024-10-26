@@ -42,7 +42,7 @@ function sendWelcomeMessage() {
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
   ctx.fillStyle = "black";
-  ctx.font = "20px Jersey15";
+  ctx.font = "16px Jersey15";
   ctx.textBaseline = "middle";
   ctx.textAlign = "center";
   ctx.fillText("Welcome!", WIDTH / 2, HEIGHT / 2);
@@ -74,7 +74,7 @@ function sendSystemUsage() {
   const usedMem = totalMem - freeMem;
   const memUsage = ((usedMem / totalMem) * 100).toFixed(2);
 
-  const statusText = `CPU: ${cpuLoad} | Mem: ${memUsage}%`;
+  const statusText = `${cpuLoad} | ${memUsage}%`;
 
   client.publish(STATUSBAR_TOPIC, statusText, { qos: 1, retain: false }, (err) => {
     if (err) {

@@ -78,7 +78,7 @@ void update_statusbar(const char *status_text) {
 
   const int statusbar_y = 0;
   const int statusbar_x = 0;
-  sFONT *font = &Font12;
+  sFONT *font = &Font8;
 
   // Calculate text width for right alignment
   int text_width = strlen(status_text) * font->Width;
@@ -104,7 +104,7 @@ void update_display_area(const char *bmp_file) {
     return;
   }
 
-  EPD_2in13_V4_Display(BlackImage);
+  EPD_2in13_V4_Display_Partial(BlackImage);
 }
 
 // MQTT message arrived callback
