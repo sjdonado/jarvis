@@ -114,7 +114,6 @@ export async function fetchUmamiData() {
       websites.map(async (website) => {
         const stats = await getVisitorStats(token, website.id);
 
-        // Add each stat to the aggregate
         aggregateStats.pageviews += stats.pageviews.value || 0;
         aggregateStats.visitors += stats.visitors.value || 0;
         aggregateStats.visits += stats.visits.value || 0;

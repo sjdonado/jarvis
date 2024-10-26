@@ -1,9 +1,14 @@
 > Jarvis It’s alive! Here to inspire and keep a watchful eye on things 👀
 
-<img width="1710" alt="Screenshot 2024-10-26 at 18 05 29" src="https://github.com/user-attachments/assets/d4b7b140-abf6-49e9-a393-36c624b63031">
+<div align="center">
+  <img width="600" alt="Screenshot 2024-10-26 at 21 04 26" src="https://github.com/user-attachments/assets/e5359978-0764-4b8f-af0d-92fee8d34514">
+  <img width="300" alt="IMG_3599" src="https://github.com/user-attachments/assets/3f196904-bfba-4b0c-bb10-2b99a08a3b22">
+</div>
 
-![IMG_3595](https://github.com/user-attachments/assets/0dbffe79-0256-4a4a-a1b6-f48be7b730f1)
-
+<div align="center">
+  <img width="600" alt="Screenshot 2024-10-26 at 21 50 01" src="https://github.com/user-attachments/assets/093683cd-09ef-46ac-855e-ff9eb8c49273">
+  <img width="300" alt="IMG_3599" src="https://github.com/user-attachments/assets/017956e5-9368-4efc-bd0f-fa1b8a50aa8c">
+</div>
 
 ## Setup
 
@@ -46,6 +51,9 @@ otherwise, run `sudo raspi-config` and enable Inerface Options > I4 and Interfac
 - Server
 ```bash
 export MQTT_ADDRESS="ssl://<username>:<password>@<host>:<port>"
+export SERVER_API_KEY=
+export SESSION_SECRET=
+export UNAMI_URI=
 npm start
 ```
 
