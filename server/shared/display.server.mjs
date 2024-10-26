@@ -79,16 +79,19 @@ export async function scheduleRandomQuotes(intervalMinutes) {
     clearInterval(scheduleIntervalId);
   }
 
-  const intervalMs = intervalMinutes * 60 * 1000;
-
-  scheduleIntervalId = setInterval(async () => {
+  const sendQuote = async () => {
     const quote = await getRandomQuote();
 
     if (quote) {
       await sendMessage(quote);
       console.log("Scheduled quote sent:", quote);
     }
-  }, intervalMs);
+  };
+
+  const intervalMs = intervalMinutes * 60 * 1000;
+
+  await sendQuote();
+  scheduleIntervalId = setInterval(sendQuote, intervalMs);
 }
 
 export function cancelScheduledQuotes() {

@@ -8,7 +8,7 @@ function parseUnamiUri(uri) {
     throw new Error("Invalid UNAMI_URI format. Expected format: http://username:password@host");
   }
 
-  const [, , username, password, host] = match;
+  const [, ,username, password, host] = match;
 
   return {
     username,

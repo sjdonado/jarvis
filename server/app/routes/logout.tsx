@@ -6,6 +6,11 @@ import { cancelScheduledQuotes } from "../../shared/display.server.mjs";
 
 export const loader: LoaderFunction = async ({ request }) => {
   const session = await getSession(request.headers.get("Cookie"));
+  const isAuthenticated = session.get("authenticated");
+
+  if (!isAuthenticated) {
+    return redirect("/login");
+  }
 
    cancelScheduledQuotes();
 
