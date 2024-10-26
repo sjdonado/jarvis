@@ -36,16 +36,13 @@ function refreshStatusBar() {
   const cpuLoad = os.loadavg()[0].toFixed(2); // 1-minute load average
   const totalMem = os.totalmem() / (1024 * 1024); // MB
   const freeMem = os.freemem() / (1024 * 1024); // MB
-  const usedMem = totalMem - freeMem;
-  const memUsage = ((usedMem / totalMem) * 100).toFixed(2);
+  const usedMem = (totalMem - freeMem).toFixed(2); // Total memory used in MB
 
-  const statusText = `${cpuLoad} | ${memUsage}%`;
+  const statusText = `${usedMem} MB | ${cpuLoad}%`;
 
   client.publish(STATUSBAR_TOPIC, statusText, { qos: 1, retain: false }, (err) => {
     if (err) {
       console.error("Failed to publish system usage:", err);
-    } else {
-      // console.log("System usage BMP image sent to topic", STATUSBAR_TOPIC);
     }
   });
 }
