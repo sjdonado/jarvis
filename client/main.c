@@ -16,6 +16,7 @@
 
 #include "EPD_2in13_V4.h"
 
+#define CLIENT_ID "pizero"
 #define STATUSBAR_TOPIC "statusbar"
 #define DISPLAY_TOPIC "display"
 #define QOS 1
@@ -28,12 +29,45 @@
 // Global variables
 UBYTE *BlackImage = NULL;
 MQTTClient client;
+MQTTClient client = NULL;
 volatile sig_atomic_t exit_requested = 0; // Flag for exiting the main loop
 
-// Function to handle SIGINT (Ctrl+C)
-void handle_sigint(int sig) { exit_requested = 1; }
+void update_statusbar(const char *status_text) {
+  printf("Updating status bar with text: %s\n", status_text);
 
-// Function to check BMP dimensions
+  const int statusbar_y = 0;
+  const int statusbar_x = 0;
+  sFONT *font = &Font12;
+
+  // Calculate text width for right alignment
+  int text_width = strlen(status_text) * font->Width;
+  int text_x = SCREEN_HEIGHT - text_width - 5;
+  int text_y = statusbar_y + (STATUSBAR_HEIGHT - font->Height) / 2;
+
+  Paint_ClearWindows(text_x, text_y, text_x + text_width, text_y + font->Height,
+                     WHITE);
+  Paint_DrawString_EN(text_x, text_y, status_text, font, WHITE, BLACK);
+
+  EPD_2in13_V4_Display_Partial(BlackImage);
+}
+
+void update_display_area(const char *bmp_file) {
+  printf("Updating display area\n");
+
+  int display_start_y = STATUSBAR_HEIGHT;
+
+  // Clear only the area below the status bar
+  Paint_ClearWindows(0, display_start_y, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1,
+                     WHITE);
+
+  if (GUI_ReadBmp(bmp_file, 0, display_start_y) != 0) {
+    fprintf(stderr, "Failed to read BMP image.\n");
+    return;
+  }
+
+  EPD_2in13_V4_Display_Partial(BlackImage);
+}
+
 int GUI_BMPfile_CheckDimensions(const char *bmp_file, int expected_width,
                                 int expected_height) {
   FILE *fp = fopen(bmp_file, "rb");
@@ -55,59 +89,6 @@ int GUI_BMPfile_CheckDimensions(const char *bmp_file, int expected_width,
   return (width == expected_width && height == expected_height);
 }
 
-void cleanup_and_exit(int exit_code) {
-  printf("Turning off the screen...\n");
-
-  // Disconnect MQTT client if connected
-  MQTTClient_disconnect(client, 10000);
-  MQTTClient_destroy(&client);
-
-  if (BlackImage) {
-    free(BlackImage);
-    BlackImage = NULL;
-  }
-  EPD_2in13_V4_Clear();
-  EPD_2in13_V4_Sleep();
-  DEV_Module_Exit();
-
-  exit(exit_code);
-}
-
-void update_statusbar(const char *status_text) {
-  printf("Updating status bar with text: %s\n", status_text);
-
-  const int statusbar_y = 0;
-  const int statusbar_x = 0;
-  sFONT *font = &Font12;
-
-  // Calculate text width for right alignment
-  int text_width = strlen(status_text) * font->Width;
-  int text_x = SCREEN_HEIGHT - text_width - 5;
-  int text_y = statusbar_y + (STATUSBAR_HEIGHT - font->Height) / 2;
-
-  Paint_ClearWindows(text_x, text_y, text_x + text_width, text_y + font->Height, WHITE);
-  Paint_DrawString_EN(text_x, text_y, status_text, font, WHITE, BLACK);
-
-  EPD_2in13_V4_Display_Partial(BlackImage);
-}
-
-void update_display_area(const char *bmp_file) {
-  printf("Updating display area\n");
-
-  int display_start_y = STATUSBAR_HEIGHT;
-
-  // Clear only the area below the status bar
-  Paint_ClearWindows(0, display_start_y, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1, WHITE);
-
-  if (GUI_ReadBmp(bmp_file, 0, display_start_y) != 0) {
-    fprintf(stderr, "Failed to read BMP image.\n");
-    return;
-  }
-
-  EPD_2in13_V4_Display_Partial(BlackImage);
-}
-
-// MQTT message arrived callback
 int msgarrvd(void *context, char *topicName, int topicLen,
              MQTTClient_message *message) {
   printf("Message arrived\n");
@@ -166,86 +147,171 @@ int msgarrvd(void *context, char *topicName, int topicLen,
   return 1;
 }
 
-// MQTT connection lost callback
 void connlost(void *context, char *cause) {
   printf("\nConnection lost\n");
   printf("     cause: %s\n", cause);
 }
 
-// MQTT delivery complete callback
 void delivered(void *context, MQTTClient_deliveryToken dt) {
   // Not used in this client since we are only subscribing
 }
 
-int main(void) {
-  // Get MQTT_ADDRESS and MQTT_CLIENTID from environment variables
-  const char *MQTT_ADDRESS = getenv("MQTT_ADDRESS");
-  const char *MQTT_CLIENTID = getenv("MQTT_CLIENTID");
-
-  printf("Using MQTT_ADDRESS: %s\n", MQTT_ADDRESS);
-  printf("Using MQTT_CLIENTID: %s\n", MQTT_CLIENTID);
-
-  // Initialize the e-paper display
-  if (DEV_Module_Init() != 0) {
+int parse_mqtt_uri(const char *uri, char *host, char *username,
+                   char *password) {
+  if (!uri || !host || !username || !password)
     return -1;
+  const char *proto_end = strstr(uri, "://");
+  if (!proto_end) {
+    fprintf(stderr, "Invalid MQTT URI\n");
+    return -1;
+  }
+  const char *auth_start = proto_end + 3;
+  const char *auth_end = strchr(auth_start, '@');
+  const char *host_start = auth_end ? auth_end + 1 : auth_start;
+  const char *host_end = strchr(host_start, '/');
+
+  if (auth_end) {
+    const char *user_end = strchr(auth_start, ':');
+    if (user_end && user_end < auth_end) {
+      strncpy(username, auth_start, user_end - auth_start);
+      username[user_end - auth_start] = '\0';
+      strncpy(password, user_end + 1, auth_end - user_end - 1);
+      password[auth_end - user_end - 1] = '\0';
+    }
+  }
+  if (host_end) {
+    strncpy(host, host_start, host_end - host_start);
+    host[host_end - host_start] = '\0';
+  } else {
+    strcpy(host, host_start);
+  }
+  return 0;
+}
+
+int setup_mqtt_client(const char *mqtt_uri, MQTTClient *client) {
+  char host[256] = {0}, username[256] = {0}, password[256] = {0};
+  int port = 1884;
+  int use_tls = 0;
+
+  // Parse URI for host, username, password, and port
+  if (parse_mqtt_uri(mqtt_uri, host, username, password) != 0) {
+    fprintf(stderr, "Failed to parse MQTT URI\n");
+    return -1;
+  }
+
+  // Check if URI specifies TLS
+  if (strstr(mqtt_uri, "mqtts://")) {
+    use_tls = 1;
+    printf("Connecting to MQTT broker at %s with TLS support\n", host);
+  } else {
+    printf("Connecting to MQTT broker at %s\n", host);
+  }
+
+  // If port is specified in URI, override the default
+  const char *port_str = strchr(host, ':');
+  if (port_str) {
+    port = atoi(port_str + 1); // Convert port substring to integer
+    *strchr(host, ':') = '\0'; // Remove port from host
+  }
+
+  MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
+  MQTTClient_SSLOptions ssl_opts = MQTTClient_SSLOptions_initializer;
+  conn_opts.username = username;
+  conn_opts.password = password;
+
+  // Enable SSL options if using TLS
+  if (use_tls) {
+    conn_opts.ssl = &ssl_opts;
+    ssl_opts.enableServerCertAuth = 0; // Set to 1 if a CA cert is used
+  }
+
+  int rc = MQTTClient_create(client, host, CLIENT_ID,
+                             MQTTCLIENT_PERSISTENCE_NONE, NULL);
+  if (rc != MQTTCLIENT_SUCCESS) {
+    fprintf(stderr, "Failed to create MQTT client, return code %d\n", rc);
+    return rc;
+  }
+
+  MQTTClient_setCallbacks(*client, NULL, connlost, msgarrvd, delivered);
+
+  rc = MQTTClient_connect(*client, &conn_opts);
+  if (rc != MQTTCLIENT_SUCCESS) {
+    fprintf(stderr, "Failed to connect to MQTT server, return code %d\n", rc);
+    MQTTClient_destroy(client);
+    *client = NULL;
+    return rc;
+  }
+
+  printf("Connected to MQTT server at %s:%d\n", host, port);
+
+  return 0;
+}
+
+void cleanup_and_exit(int exit_code) {
+  if (client) {
+    printf("Disconnecting from MQTT server...\n");
+    MQTTClient_disconnect(client, 10000);
+    MQTTClient_destroy(&client);
+  }
+
+  if (BlackImage) {
+    printf("Turning off the screen...\n");
+
+    free(BlackImage);
+    BlackImage = NULL;
+
+    EPD_2in13_V4_Clear();
+    EPD_2in13_V4_Sleep();
+    DEV_Module_Exit();
+  }
+
+  exit(exit_code);
+}
+
+// Function to handle SIGINT (Ctrl+C)
+void handle_sigint(int sig) { exit_requested = 1; }
+
+int main(void) {
+  const char *MQTT_ADDRESS = getenv("MQTT_ADDRESS");
+  if (MQTT_ADDRESS == NULL) {
+    fprintf(stderr, "MQTT_ADDRESS environment variable is not set\n");
+    return -1;
+  }
+
+  int rc = setup_mqtt_client(MQTT_ADDRESS, &client);
+  if (rc != 0) {
+    cleanup_and_exit(-1);
+  }
+
+  MQTTClient_subscribe(client, STATUSBAR_TOPIC, QOS);
+  MQTTClient_subscribe(client, DISPLAY_TOPIC, QOS);
+
+  if (DEV_Module_Init() != 0) {
+    cleanup_and_exit(-1);
   }
 
   EPD_2in13_V4_Init();
   EPD_2in13_V4_Clear();
 
-  // Create a new image cache
   UWORD Imagesize =
       ((EPD_2in13_V4_WIDTH % 8 == 0) ? (EPD_2in13_V4_WIDTH / 8)
                                      : (EPD_2in13_V4_WIDTH / 8 + 1)) *
       EPD_2in13_V4_HEIGHT;
   if ((BlackImage = (UBYTE *)malloc(Imagesize)) == NULL) {
     Debug("Failed to apply for black memory...\r\n");
-    return -1;
+    cleanup_and_exit(-1);
   }
 
-  // Initialize the image buffer for the full display
   Paint_NewImage(BlackImage, SCREEN_WIDTH, SCREEN_HEIGHT, ROTATE_90, WHITE);
   Paint_SelectImage(BlackImage);
   Paint_Clear(WHITE);
 
-  // MQTT setup
-  MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
-  int rc;
-
-  MQTTClient_create(&client, MQTT_ADDRESS, MQTT_CLIENTID,
-                    MQTTCLIENT_PERSISTENCE_NONE, NULL);
-  conn_opts.keepAliveInterval = 20;
-  conn_opts.cleansession = 1;
-
-  MQTTClient_setCallbacks(client, NULL, connlost, msgarrvd, delivered);
-
-  if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS) {
-    printf("Failed to connect to MQTT server, return code %d\n", rc);
-    cleanup_and_exit(-1);
-  }
-
-  printf("Connected to MQTT server at %s\n", MQTT_ADDRESS);
-
-  // Subscribe to both topics
-  MQTTClient_subscribe(client, STATUSBAR_TOPIC, QOS);
-  MQTTClient_subscribe(client, DISPLAY_TOPIC, QOS);
-
-  printf("Subscribed to topics %s and %s\n", STATUSBAR_TOPIC, DISPLAY_TOPIC);
-
-  // Register the signal handler for Ctrl+C
   signal(SIGINT, handle_sigint);
-
   printf("Running... Press Ctrl+C to exit.\n");
-  while (!exit_requested) {
-    // Sleep for a short while to reduce CPU usage
-    usleep(500000); // Sleep for 500 milliseconds
-  }
 
-  // Disconnect MQTT client
-  MQTTClient_disconnect(client, 10000);
-  MQTTClient_destroy(&client);
+  while (!exit_requested) {
+    usleep(500000); // Sleep for 500 ms
+  }
 
   cleanup_and_exit(0);
-
-  return 0;
 }
