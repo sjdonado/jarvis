@@ -45,8 +45,9 @@ void update_statusbar(const char *status_text) {
   int text_x = SCREEN_HEIGHT - text_width - 5;
   int text_y = statusbar_y + (STATUSBAR_HEIGHT - font->Height) / 2;
 
-  Paint_ClearWindows(text_x, text_y, text_x + text_width, text_y + font->Height,
+  Paint_ClearWindows(0, text_y, SCREEN_HEIGHT - 5, text_y + font->Height,
                      WHITE);
+
   Paint_DrawString_EN(text_x, text_y, status_text, font, WHITE, BLACK);
 
   EPD_2in13_V4_Display_Partial(BlackImage);
