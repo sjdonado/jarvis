@@ -10,7 +10,29 @@ const EPD_2in13_V4_WIDTH = 122;
 const EPD_2in13_V4_HEIGHT = 250;
 const STATUSBAR_HEIGHT = 20;
 
-export function displayMessage(message) {
+function drawCenteredText(ctx, message, width, height, fontSize = 20, lineSpacing = 1.2) {
+  ctx.font = `${fontSize}px Jersey15`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  // Split the message into lines
+  const lines = message.split("\n");
+
+  // Calculate the height of the entire text block
+  const lineHeight = fontSize * lineSpacing;
+  const textBlockHeight = lines.length * lineHeight;
+
+  // Calculate the starting y position to center the text block vertically
+  const startY = (height - textBlockHeight) / 2 + lineHeight / 2;
+
+  // Draw each line of text centered horizontally
+  lines.forEach((line, index) => {
+    const yPosition = startY + index * lineHeight;
+    ctx.fillText(line, width / 2, yPosition);
+  });
+}
+
+export function sendMessage(message) {
   const client = getClient();
 
   const HEIGHT = EPD_2in13_V4_WIDTH - STATUSBAR_HEIGHT;
@@ -25,11 +47,7 @@ export function displayMessage(message) {
   ctx.fillStyle = "white";
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-  ctx.fillStyle = "black";
-  ctx.font = "16px Jersey15";
-  ctx.textBaseline = "middle";
-  ctx.textAlign = "center";
-  ctx.fillText(message, WIDTH / 2, HEIGHT / 2);
+  drawCenteredText(ctx, message, WIDTH, HEIGHT);
 
   try {
     const imageData = ctx.getImageData(0, 0, WIDTH, HEIGHT);

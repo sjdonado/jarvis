@@ -94,9 +94,12 @@ void update_statusbar(const char *status_text) {
 void update_display_area(const char *bmp_file) {
   printf("Updating display area\n");
 
-  Paint_ClearWindows(0 + STATUSBAR_HEIGHT, 0, SCREEN_WIDTH, SCREEN_HEIGHT, WHITE);
+  int display_start_y = STATUSBAR_HEIGHT;
 
-  if (GUI_ReadBmp(bmp_file, 0, 0) != 0) {
+  // Clear only the area below the status bar
+  Paint_ClearWindows(0, display_start_y, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1, WHITE);
+
+  if (GUI_ReadBmp(bmp_file, 0, display_start_y) != 0) {
     fprintf(stderr, "Failed to read BMP image.\n");
     return;
   }

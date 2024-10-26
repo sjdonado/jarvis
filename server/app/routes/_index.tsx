@@ -1,7 +1,7 @@
 import type { ActionFunctionArgs, MetaFunction } from "@remix-run/node";
 import { Form, useActionData } from "@remix-run/react";
 
-import { displayMessage } from "../../shared/display.mjs";
+import { sendMessage } from "../../shared/display.mjs";
 
 export const meta: MetaFunction = () => {
   return [{ title: "Jarvis" }, { name: "description", content: "Welcome to Jarvis!" }];
@@ -11,7 +11,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const message = formData.get("message");
 
-  displayMessage(message);
+  sendMessage(message);
   console.log("Submitted message:", message);
 
   return { message };
