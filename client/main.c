@@ -144,9 +144,8 @@ int msgarrvd(void *context, char *topicName, int topicLen,
     // Debug log to verify file save success
     printf("BMP image saved to %s\n", bmp_file);
 
-    // Check BMP dimensions before displaying
-    int expected_width = SCREEN_WIDTH - 20; // Adjust for status bar
-    int expected_height = SCREEN_HEIGHT;
+    int expected_width = SCREEN_HEIGHT;
+    int expected_height = SCREEN_WIDTH - STATUSBAR_HEIGHT;
 
     if (GUI_BMPfile_CheckDimensions(bmp_file, expected_width,
                                     expected_height)) {
