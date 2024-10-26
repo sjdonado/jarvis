@@ -21,9 +21,9 @@
 #define QOS 1
 #define TIMEOUT 10000L
 
-// Define screen dimensions based on rotation
-#define SCREEN_WIDTH EPD_2in13_V4_HEIGHT // 250
-#define SCREEN_HEIGHT EPD_2in13_V4_WIDTH // 122
+#define SCREEN_WIDTH EPD_2in13_V4_WIDTH // 122
+#define SCREEN_HEIGHT EPD_2in13_V4_HEIGHT // 250
+#define STATUSBAR_HEIGHT 20
 
 // Global variables
 UBYTE *BlackImage = NULL;
@@ -55,7 +55,6 @@ int GUI_BMPfile_CheckDimensions(const char *bmp_file, int expected_width,
   return (width == expected_width && height == expected_height);
 }
 
-// Function to clean up and turn off the screen
 void cleanup_and_exit(int exit_code) {
   printf("Turning off the screen...\n");
 
@@ -74,36 +73,33 @@ void cleanup_and_exit(int exit_code) {
   exit(exit_code);
 }
 
-// Function to update the status bar
 void update_statusbar(const char *status_text) {
-  printf("Updating status bar with text: %s\n", status_text);
+    printf("Updating status bar with text: %s\n", status_text);
 
-  const int statusbar_height = 20;
-  const int statusbar_x = 0;
-  const int statusbar_y = 0;
-  const int text_width = strlen(status_text) * Font16.Width;
-  
-  int text_x = SCREEN_WIDTH - text_width - 5; // 5-pixel margin
-  int text_y = statusbar_y + (statusbar_height - Font12.Height) / 2;
+    const int statusbar_y = 0;
+    const int statusbar_x = 0;
+    sFONT *font = &Font12;
 
-  Paint_ClearWindows(text_x, text_y, text_x + text_width,
-                     text_y + Font12.Height, WHITE);
+    // Calculate text width for right alignment
+    int text_width = strlen(status_text) * font->Width;
+    int text_x = SCREEN_HEIGHT - text_width - 5;
+    int text_y = statusbar_y + (STATUSBAR_HEIGHT - font->Height) / 2;
 
-  Paint_DrawString_EN(text_x, text_y, status_text, &Font12, WHITE, BLACK);
-  EPD_2in13_V4_Display_Partial(BlackImage);
+    Paint_ClearWindows(text_x, text_y, text_x + text_width, text_y + font->Height, WHITE);
+    Paint_DrawString_EN(text_x, text_y, status_text, font, WHITE, BLACK);
+
+    EPD_2in13_V4_Display_Partial(BlackImage);
 }
 
-// Function to update the display area
 void update_display_area(const char *bmp_file) {
   printf("Updating display area\n");
-  // Define status bar dimensions
-  const int statusbar_height = 20; // Must match with status bar height
-  const int display_area_y = statusbar_height;
 
-  Paint_ClearWindows(0, display_area_y, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1,
-                     WHITE);
+  const int display_area_x = SCREEN_WIDTH - STATUSBAR_HEIGHT;
+  const int display_area_y = SCREEN_HEIGHT;
 
-  if (GUI_ReadBmp(bmp_file, 0, display_area_y) != 0) {
+  Paint_ClearWindows(0, 0, display_area_x, display_area_y, WHITE);
+
+  if (GUI_ReadBmp(bmp_file, 0, 0) != 0) {
     fprintf(stderr, "Failed to read BMP image.\n");
     return;
   }
@@ -149,12 +145,12 @@ int msgarrvd(void *context, char *topicName, int topicLen,
     printf("BMP image saved to %s\n", bmp_file);
 
     // Check BMP dimensions before displaying
-    int expected_width = SCREEN_WIDTH;
-    int expected_height = SCREEN_HEIGHT - 20; // Adjust for status bar
+    int expected_width = SCREEN_WIDTH - 20; // Adjust for status bar
+    int expected_height = SCREEN_HEIGHT;
 
     if (GUI_BMPfile_CheckDimensions(bmp_file, expected_width,
                                     expected_height)) {
-      // update_display_area(bmp_file);
+      update_display_area(bmp_file);
       printf("Image displayed on e-paper.\n");
     } else {
       fprintf(
@@ -197,21 +193,20 @@ int main(void) {
 
   EPD_2in13_V4_Init();
   EPD_2in13_V4_Clear();
-  DEV_Delay_ms(100);
 
-  UWORD Imagesize =
-      ((SCREEN_WIDTH % 8 == 0) ? (SCREEN_WIDTH / 8) : (SCREEN_WIDTH / 8 + 1)) *
-      SCREEN_HEIGHT;
-  BlackImage = (UBYTE *)malloc(Imagesize);
-  if (!BlackImage) {
-    fprintf(stderr, "Failed to allocate memory for BlackImage.\n");
-    cleanup_and_exit(-1);
-  }
+      //Create a new image cache
+    UWORD Imagesize = ((EPD_2in13_V4_WIDTH % 8 == 0)? (EPD_2in13_V4_WIDTH / 8 ): (EPD_2in13_V4_WIDTH / 8 + 1)) * EPD_2in13_V4_HEIGHT;
+    if((BlackImage = (UBYTE *)malloc(Imagesize)) == NULL) {
+        Debug("Failed to apply for black memory...\r\n");
+        return -1;
+    }
 
   // Initialize the image buffer for the full display
   Paint_NewImage(BlackImage, SCREEN_WIDTH, SCREEN_HEIGHT, ROTATE_90, WHITE);
   Paint_SelectImage(BlackImage);
   Paint_Clear(WHITE);
+
+  EPD_2in13_V4_Display_Base(BlackImage);
 
   // MQTT setup
   MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
