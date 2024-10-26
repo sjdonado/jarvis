@@ -1,14 +1,15 @@
 import os from "os";
+
 import mqtt from "mqtt";
 
 export const STATUSBAR_TOPIC = "statusbar";
 export const DISPLAY_TOPIC = "display";
 
-const MQTT_SERVER = process.env.MQTT_SERVER_URL || "mqtt://localhost:1883";
-
 let _client;
 
 export const getClient = () => {
+  const MQTT_SERVER = process.env.MQTT_SERVER_URL || "mqtt://localhost:1883";
+
   if (_client) return _client;
   _client = mqtt.connect(MQTT_SERVER);
 
@@ -19,7 +20,7 @@ export function init() {
   const client = getClient();
 
   client.on("connect", () => {
-    console.log("Connected to MQTT broker at", MQTT_SERVER);
+    console.log("Connected to MQTT broker");
     refreshStatusBar();
     setInterval(refreshStatusBar, 1500);
   });

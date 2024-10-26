@@ -9,12 +9,8 @@ const EPD_2in13_V4_WIDTH = 122;
 const EPD_2in13_V4_HEIGHT = 250;
 const STATUSBAR_HEIGHT = 20;
 
-const HEIGHT = EPD_2in13_V4_WIDTH - STATUSBAR_HEIGHT;
-const WIDTH = EPD_2in13_V4_HEIGHT;
-
-export const PLACEHOLDER_IMAGE = `data:image/png;base64,${Buffer.from(
-  createCanvas(WIDTH, HEIGHT).toBuffer("image/png")
-).toString("base64")}`;
+export const HEIGHT = EPD_2in13_V4_WIDTH - STATUSBAR_HEIGHT;
+export const WIDTH = EPD_2in13_V4_HEIGHT;
 
 export function sendMessage(message) {
   const client = getClient();
