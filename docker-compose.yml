@@ -10,7 +10,7 @@ services:
       - /app/node_modules
     environment:
       NODE_ENV: development
-      MQTT_SERVER_URL: mqtt://127.0.0.1:1883
+      MQTT_ADDRESS: mqtt://127.0.0.1:1883
     depends_on:
       - mqtt
   mqtt:

@@ -8,7 +8,7 @@ export const DISPLAY_TOPIC = "display";
 let _client;
 
 export const getClient = () => {
-  const MQTT_SERVER = process.env.MQTT_SERVER_URL || "mqtt://localhost:1883";
+  const MQTT_SERVER = process.env.MQTT_ADDRESS || "mqtt://localhost:1883";
 
   if (_client) return _client;
   _client = mqtt.connect(MQTT_SERVER);

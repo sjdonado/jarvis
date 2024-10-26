@@ -185,7 +185,6 @@ int parse_mqtt_uri(const char *uri, char *broker_uri, char *username,
     password[0] = '\0';
   }
 
-  // Append the host and port to broker_uri
   strcat(broker_uri, host_start);
 
   return 0;
@@ -215,16 +214,6 @@ int setup_mqtt_client(const char *mqtt_uri, MQTTClient *client) {
   conn_opts.cleansession = 1;
 
   if (use_tls) {
-    /* ssl_opts.enableServerCertAuth = 1; */
-    /* ssl_opts.verify = 1; // Verify the server's certificate */
-    /* ssl_opts.sslVersion = 3; */
-    /* ssl_opts.trustStore = NULL; // Use system default CA certificates */
-    /* ssl_opts.CApath = NULL; */
-    /* ssl_opts.keyStore = NULL; */
-    /* ssl_opts.privateKey = NULL; */
-    /* ssl_opts.privateKeyPassword = NULL; */
-    /* ssl_opts.enabledCipherSuites = NULL; */
-
     ssl_opts.verify = 1;
     ssl_opts.CApath = NULL;
     ssl_opts.keyStore = NULL;
@@ -234,22 +223,14 @@ int setup_mqtt_client(const char *mqtt_uri, MQTTClient *client) {
     ssl_opts.enabledCipherSuites = NULL;
 
     conn_opts.ssl = &ssl_opts;
-
-    printf("Connecting to MQTT broker at %s with TLS 1.2 support\n",
-           broker_uri);
-  } else {
-    printf("Connecting to MQTT broker at %s\n", broker_uri);
   }
-
-  // Debugging statements
-  printf("Broker URI: %s\n", broker_uri);
-  printf("Username: %s\n", username);
-  // Avoid printing the password for security reasons
 
   int rc = MQTTClient_create(client, broker_uri, CLIENT_ID,
                              MQTTCLIENT_PERSISTENCE_NONE, NULL);
   if (rc != MQTTCLIENT_SUCCESS) {
     fprintf(stderr, "Failed to create MQTT client, return code %d\n", rc);
+    printf("Broker URI: %s\n", broker_uri);
+    printf("Username: %s\n", username);
     return rc;
   }
 
