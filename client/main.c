@@ -21,7 +21,7 @@
 #define QOS 1
 #define TIMEOUT 10000L
 
-#define SCREEN_WIDTH EPD_2in13_V4_WIDTH // 122
+#define SCREEN_WIDTH EPD_2in13_V4_WIDTH   // 122
 #define SCREEN_HEIGHT EPD_2in13_V4_HEIGHT // 250
 #define STATUSBAR_HEIGHT 20
 
@@ -74,21 +74,21 @@ void cleanup_and_exit(int exit_code) {
 }
 
 void update_statusbar(const char *status_text) {
-    printf("Updating status bar with text: %s\n", status_text);
+  printf("Updating status bar with text: %s\n", status_text);
 
-    const int statusbar_y = 0;
-    const int statusbar_x = 0;
-    sFONT *font = &Font12;
+  const int statusbar_y = 0;
+  const int statusbar_x = 0;
+  sFONT *font = &Font12;
 
-    // Calculate text width for right alignment
-    int text_width = strlen(status_text) * font->Width;
-    int text_x = SCREEN_HEIGHT - text_width - 5;
-    int text_y = statusbar_y + (STATUSBAR_HEIGHT - font->Height) / 2;
+  // Calculate text width for right alignment
+  int text_width = strlen(status_text) * font->Width;
+  int text_x = SCREEN_HEIGHT - text_width - 5;
+  int text_y = statusbar_y + (STATUSBAR_HEIGHT - font->Height) / 2;
 
-    Paint_ClearWindows(text_x, text_y, text_x + text_width, text_y + font->Height, WHITE);
-    Paint_DrawString_EN(text_x, text_y, status_text, font, WHITE, BLACK);
+  Paint_ClearWindows(text_x, text_y, text_x + text_width, text_y + font->Height, WHITE);
+  Paint_DrawString_EN(text_x, text_y, status_text, font, WHITE, BLACK);
 
-    EPD_2in13_V4_Display_Partial(BlackImage);
+  EPD_2in13_V4_Display_Partial(BlackImage);
 }
 
 void update_display_area(const char *bmp_file) {
@@ -104,7 +104,7 @@ void update_display_area(const char *bmp_file) {
     return;
   }
 
-  EPD_2in13_V4_Display_Fast(BlackImage);
+  EPD_2in13_V4_Display(BlackImage);
 }
 
 // MQTT message arrived callback
@@ -193,12 +193,15 @@ int main(void) {
   EPD_2in13_V4_Init();
   EPD_2in13_V4_Clear();
 
-      //Create a new image cache
-    UWORD Imagesize = ((EPD_2in13_V4_WIDTH % 8 == 0)? (EPD_2in13_V4_WIDTH / 8 ): (EPD_2in13_V4_WIDTH / 8 + 1)) * EPD_2in13_V4_HEIGHT;
-    if((BlackImage = (UBYTE *)malloc(Imagesize)) == NULL) {
-        Debug("Failed to apply for black memory...\r\n");
-        return -1;
-    }
+  // Create a new image cache
+  UWORD Imagesize =
+      ((EPD_2in13_V4_WIDTH % 8 == 0) ? (EPD_2in13_V4_WIDTH / 8)
+                                     : (EPD_2in13_V4_WIDTH / 8 + 1)) *
+      EPD_2in13_V4_HEIGHT;
+  if ((BlackImage = (UBYTE *)malloc(Imagesize)) == NULL) {
+    Debug("Failed to apply for black memory...\r\n");
+    return -1;
+  }
 
   // Initialize the image buffer for the full display
   Paint_NewImage(BlackImage, SCREEN_WIDTH, SCREEN_HEIGHT, ROTATE_90, WHITE);

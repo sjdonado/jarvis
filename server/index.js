@@ -1,13 +1,19 @@
 const os = require("os");
 const fs = require("fs");
+const path = require("path");
 
 const mqtt = require("mqtt");
-const { createCanvas } = require("canvas");
+const { createCanvas, registerFont } = require("canvas");
 
 const { imageDataToBMP } = require("./lib");
 
+const EPD_2in13_V4_WIDTH = 122;
+const EPD_2in13_V4_HEIGHT = 250;
+const STATUSBAR_HEIGHT = 20;
+
 const STATUSBAR_TOPIC = "statusbar";
 const DISPLAY_TOPIC = "display";
+
 const MQTT_SERVER = process.env.MQTT_SERVER_URL || "mqtt://localhost:1883";
 const client = mqtt.connect(MQTT_SERVER);
 
@@ -22,36 +28,33 @@ client.on("error", (err) => {
   console.error("MQTT error:", err);
 });
 
-// Function to send the welcome message to the 'display' topic
 function sendWelcomeMessage() {
-  const WIDTH = 122;
-  const HEIGHT = 250;
+  const HEIGHT = EPD_2in13_V4_WIDTH - STATUSBAR_HEIGHT;
+  const WIDTH = EPD_2in13_V4_HEIGHT;
+
+  const fontPath = path.join(__dirname, "fonts", "Jersey15-Regular.ttf");
+  registerFont(fontPath, { family: "Jersey15" });
 
   const canvas = createCanvas(WIDTH, HEIGHT);
   const ctx = canvas.getContext("2d");
 
-  // Fill background
   ctx.fillStyle = "white";
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-  // Draw welcome message
   ctx.fillStyle = "black";
-  ctx.font = "bold 20px Arial";
+  ctx.font = "20px Jersey15";
   ctx.textBaseline = "middle";
   ctx.textAlign = "center";
   ctx.fillText("Welcome!", WIDTH / 2, HEIGHT / 2);
 
   try {
-    // Get image data and convert to BMP
     const imageData = ctx.getImageData(0, 0, WIDTH, HEIGHT);
     const bmpBuffer = imageDataToBMP(imageData, WIDTH, HEIGHT);
 
-    // Save BMP for debugging (optional)
     const filePath = "/tmp/jarvis_display.bmp";
     fs.writeFileSync(filePath, bmpBuffer);
     console.log(`Welcome BMP image saved to disk at ${filePath}`);
 
-    // Publish BMP via MQTT to 'display' topic
     client.publish(DISPLAY_TOPIC, bmpBuffer, { qos: 1, retain: false }, (err) => {
       if (err) {
         console.error("Failed to publish welcome BMP image:", err);
@@ -64,7 +67,6 @@ function sendWelcomeMessage() {
   }
 }
 
-// Function to send system usage to the 'statusbar' topic
 function sendSystemUsage() {
   const cpuLoad = os.loadavg()[0].toFixed(2); // 1-minute load average
   const totalMem = os.totalmem() / (1024 * 1024); // MB
