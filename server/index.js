@@ -1,26 +1,29 @@
 const os = require("os");
 const fs = require("fs");
-const path = require("path");
 
 const mqtt = require("mqtt");
 const { createCanvas } = require("canvas");
 
 const { imageDataToBMP } = require("./lib");
 
-const MQTT_TOPIC = "display";
+const STATUSBAR_TOPIC = "statusbar";
+const DISPLAY_TOPIC = "display";
 const MQTT_SERVER = process.env.MQTT_SERVER_URL || "mqtt://localhost:1883";
 const client = mqtt.connect(MQTT_SERVER);
 
 client.on("connect", () => {
   console.log("Connected to MQTT broker at", MQTT_SERVER);
-  sendBmpImage();
+  sendWelcomeMessage(); // Send welcome message once
+  sendSystemUsage(); // Send initial system usage
+  setInterval(sendSystemUsage, 1500); // Send system usage every 1.5 seconds
 });
 
 client.on("error", (err) => {
   console.error("MQTT error:", err);
 });
 
-async function sendBmpImage() {
+// Function to send the welcome message to the 'display' topic
+function sendWelcomeMessage() {
   const WIDTH = 122;
   const HEIGHT = 250;
 
@@ -31,50 +34,51 @@ async function sendBmpImage() {
   ctx.fillStyle = "white";
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-  // Get CPU and memory usage
-  const cpuLoad = os.loadavg()[0].toFixed(2); // 1-minute load average
-  const totalMem = os.totalmem() / (1024 * 1024); // MB
-  const freeMem = os.freemem() / (1024 * 1024); // MB
-  const usedMem = totalMem - freeMem;
-  const memUsage = ((usedMem / totalMem) * 100).toFixed(2);
-
-  const cpuText = `CPU Load: ${cpuLoad}`;
-  const memText = `Memory Usage: ${memUsage}%`;
-
-  // Rotate content
-  ctx.save();
-  ctx.translate(WIDTH / 2, HEIGHT / 2);
-  ctx.rotate((90 * Math.PI) / 180);
-  ctx.translate(-HEIGHT / 2, -WIDTH / 2);
-
+  // Draw welcome message
   ctx.fillStyle = "black";
   ctx.font = "bold 20px Arial";
   ctx.textBaseline = "middle";
   ctx.textAlign = "center";
-  ctx.fillText(cpuText, HEIGHT / 2, WIDTH / 2 - 20);
-  ctx.fillText(memText, HEIGHT / 2, WIDTH / 2 + 20);
-  ctx.restore();
+  ctx.fillText("Welcome!", WIDTH / 2, HEIGHT / 2);
 
   try {
     // Get image data and convert to BMP
     const imageData = ctx.getImageData(0, 0, WIDTH, HEIGHT);
     const bmpBuffer = imageDataToBMP(imageData, WIDTH, HEIGHT);
 
-    // Save BMP for debugging
-    fs.writeFileSync("/tmp/system_usage.bmp", bmpBuffer);
-    console.log(`BMP image saved to disk at ${filePath}`);
+    // Save BMP for debugging (optional)
+    const filePath = "/tmp/jarvis_display.bmp";
+    fs.writeFileSync(filePath, bmpBuffer);
+    console.log(`Welcome BMP image saved to disk at ${filePath}`);
 
-    // Publish BMP via MQTT
-    client.publish(MQTT_TOPIC, bmpBuffer, { qos: 1, retain: false }, (err) => {
+    // Publish BMP via MQTT to 'display' topic
+    client.publish(DISPLAY_TOPIC, bmpBuffer, { qos: 1, retain: false }, (err) => {
       if (err) {
-        console.error("Failed to publish BMP image:", err);
+        console.error("Failed to publish welcome BMP image:", err);
       } else {
-        console.log("BMP image with system usage sent to topic", MQTT_TOPIC);
+        console.log("Welcome BMP image sent to topic", DISPLAY_TOPIC);
       }
     });
   } catch (err) {
-    console.error("Failed to create BMP buffer:", err);
+    console.error("Failed to create BMP buffer for welcome message:", err);
   }
 }
 
-setInterval(sendBmpImage, 1500); // every 1,5 seconds
+// Function to send system usage to the 'statusbar' topic
+function sendSystemUsage() {
+  const cpuLoad = os.loadavg()[0].toFixed(2); // 1-minute load average
+  const totalMem = os.totalmem() / (1024 * 1024); // MB
+  const freeMem = os.freemem() / (1024 * 1024); // MB
+  const usedMem = totalMem - freeMem;
+  const memUsage = ((usedMem / totalMem) * 100).toFixed(2);
+
+  const statusText = `CPU: ${cpuLoad} | Mem: ${memUsage}%`;
+
+  client.publish(STATUSBAR_TOPIC, statusText, { qos: 1, retain: false }, (err) => {
+    if (err) {
+      console.error("Failed to publish system usage:", err);
+    } else {
+      console.log("System usage BMP image sent to topic", STATUSBAR_TOPIC);
+    }
+  });
+}

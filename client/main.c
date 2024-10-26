@@ -16,7 +16,8 @@
 
 #include "EPD_2in13_V4.h"
 
-#define MQTT_TOPIC "display"
+#define STATUSBAR_TOPIC "statusbar"
+#define DISPLAY_TOPIC "display"
 #define QOS 1
 #define TIMEOUT 10000L
 
@@ -69,6 +70,51 @@ void cleanup_and_exit(int exit_code) {
   exit(exit_code);
 }
 
+// Function to update the status bar
+void update_statusbar(const char *status_text) {
+  printf("Updating status bar with text: %s\n", status_text);
+
+  // Define status bar dimensions
+  const int statusbar_height = 20; // Adjust as needed
+  const int statusbar_y = 0;
+  const int statusbar_x = 0;
+
+  // Update the status bar area
+  Paint_SelectImage(BlackImage);
+  Paint_SetRotate(ROTATE_0);
+  Paint_ClearWindows(statusbar_x, statusbar_y, EPD_2in13_V4_WIDTH - 1,
+                     statusbar_height - 1, WHITE);
+
+  // Draw the status text
+  int text_x = EPD_2in13_V4_WIDTH - 5;
+  int text_y = statusbar_y + (statusbar_height / 2) - (Font16.Height / 2);
+  Paint_DrawString_EN(text_x, text_y, status_text, &Font16, WHITE, BLACK);
+
+  // Refresh the status bar area
+  EPD_2in13_V4_Display_Partial(BlackImage);
+}
+
+// Function to update the display area
+void update_display_area(const char *bmp_file) {
+  printf("Updating display area\n");
+  // Define status bar dimensions
+  const int statusbar_height = 20; // Must match with status bar height
+  const int display_area_y = statusbar_height;
+
+  Paint_ClearWindows(0, display_area_y, EPD_2in13_V4_WIDTH - 1,
+                     EPD_2in13_V4_HEIGHT - 1, WHITE);
+
+  // Load the BMP image into the display area
+  // Ensure that the BMP is adjusted to not overwrite the status bar
+  if (GUI_ReadBmp(bmp_file, 0, display_area_y) != 0) {
+    fprintf(stderr, "Failed to read BMP image.\n");
+    return;
+  }
+
+  // Refresh the display area
+  EPD_2in13_V4_Display_Fast(BlackImage);
+}
+
 // MQTT message arrived callback
 int msgarrvd(void *context, char *topicName, int topicLen,
              MQTTClient_message *message) {
@@ -82,34 +128,46 @@ int msgarrvd(void *context, char *topicName, int topicLen,
     return 1;
   }
 
-  // Save the received BMP image to a temporary file
-  const char *bmp_file = "/tmp/received_image.bmp";
-  FILE *fp = fopen(bmp_file, "wb");
-  if (!fp) {
-    fprintf(stderr, "Failed to open file for writing.\n");
-    MQTTClient_freeMessage(&message);
-    MQTTClient_free(topicName);
-    return 1;
-  }
+  if (strcmp(topicName, STATUSBAR_TOPIC) == 0) {
+    // Handle status bar update
+    char status_text[256];
+    snprintf(status_text, sizeof(status_text), "%.*s", message->payloadlen,
+             (char *)message->payload);
 
-  fwrite(message->payload, 1, message->payloadlen, fp);
-  fclose(fp);
+    update_statusbar(status_text);
+  } else if (strcmp(topicName, DISPLAY_TOPIC) == 0) {
+    const char *bmp_file = "/tmp/jarvis_display.bmp";
 
-  // Debug log to verify file save success
-  printf("BMP image saved to %s\n", bmp_file);
+    FILE *fp = fopen(bmp_file, "wb");
+    if (!fp) {
+      fprintf(stderr, "Failed to open file for writing.\n");
+      MQTTClient_freeMessage(&message);
+      MQTTClient_free(topicName);
+      return 1;
+    }
 
-  // Check BMP dimensions before displaying
-  int expected_width = EPD_2in13_V4_WIDTH;
-  int expected_height = EPD_2in13_V4_HEIGHT;
+    fwrite(message->payload, 1, message->payloadlen, fp);
+    fclose(fp);
 
-  if (GUI_BMPfile_CheckDimensions(bmp_file, expected_width, expected_height)) {
-    GUI_ReadBmp(bmp_file, 0, 0);
-    EPD_2in13_V4_Display_Partial(BlackImage);
-    printf("Image displayed on e-paper.\n");
+    // Debug log to verify file save success
+    printf("BMP image saved to %s\n", bmp_file);
+
+    // Check BMP dimensions before displaying
+    int expected_width = EPD_2in13_V4_WIDTH;
+    int expected_height = EPD_2in13_V4_HEIGHT - 20; // Adjust for status bar
+
+    if (GUI_BMPfile_CheckDimensions(bmp_file, expected_width,
+                                    expected_height)) {
+      update_display_area(bmp_file);
+      printf("Image displayed on e-paper.\n");
+    } else {
+      fprintf(
+          stderr,
+          "Error: BMP dimensions do not match display area. Expected %dx%d.\n",
+          expected_width, expected_height);
+    }
   } else {
-    fprintf(stderr,
-            "Error: BMP dimensions do not match display. Expected %dx%d.\n",
-            expected_width, expected_height);
+    printf("Unknown topic received: %s\n", topicName);
   }
 
   MQTTClient_freeMessage(&message);
@@ -155,7 +213,7 @@ int main(void) {
     cleanup_and_exit(-1);
   }
 
-  // Initialize the image buffer for the new image
+  // Initialize the image buffer for the full display
   Paint_NewImage(BlackImage, EPD_2in13_V4_WIDTH, EPD_2in13_V4_HEIGHT, 0, WHITE);
   Paint_SelectImage(BlackImage);
   Paint_Clear(WHITE);
@@ -178,9 +236,11 @@ int main(void) {
 
   printf("Connected to MQTT server at %s\n", MQTT_ADDRESS);
 
-  MQTTClient_subscribe(client, MQTT_TOPIC, QOS);
+  // Subscribe to both topics
+  MQTTClient_subscribe(client, STATUSBAR_TOPIC, QOS);
+  MQTTClient_subscribe(client, DISPLAY_TOPIC, QOS);
 
-  printf("Subscribed to topic %s\n", MQTT_TOPIC);
+  printf("Subscribed to topics %s and %s\n", STATUSBAR_TOPIC, DISPLAY_TOPIC);
 
   // Register the signal handler for Ctrl+C
   signal(SIGINT, handle_sigint);
