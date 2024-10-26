@@ -1,7 +1,6 @@
 import type { ActionFunctionArgs, MetaFunction } from "@remix-run/node";
 import { Form, useActionData } from "@remix-run/react";
-
-import { sendMessage } from "../../shared/display.mjs";
+import { PLACEHOLDER_IMAGE, sendMessage } from "../../shared/display.mjs";
 
 export const meta: MetaFunction = () => {
   return [{ title: "Jarvis" }, { name: "description", content: "Welcome to Jarvis!" }];
@@ -11,10 +10,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const message = formData.get("message");
 
-  sendMessage(message);
+  const imageData = sendMessage(message);
   console.log("Submitted message:", message);
 
-  return { message };
+  return { message, imageData };
 };
 
 export default function Index() {
@@ -22,22 +21,30 @@ export default function Index() {
 
   return (
     <div className="flex h-screen items-center justify-center">
-      <div className="flex flex-col items-center gap-6">
-        <header className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Jarvis control center</h1>
-        </header>
-        <Form method="post" className="flex flex-col gap-4">
-          <input
-            type="text"
-            name="message"
-            placeholder="Type your message"
-            className="rounded border border-gray-300 p-2 text-gray-700"
+      <div className="flex w-3/4 max-w-5xl gap-10">
+        <div className="flex w-1/2 flex-col items-center gap-6">
+          <header className="text-center">
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Jarvis Control Center</h1>
+          </header>
+          <Form method="post" className="flex flex-col gap-4 w-full">
+            <textarea
+              name="message"
+              placeholder="Type your message"
+              className="rounded border border-gray-300 p-2 text-gray-700 h-32 resize-none"
+            />
+            <button type="submit" className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600">
+              Submit
+            </button>
+          </Form>
+          {actionData?.message && <p className="text-green-500">Message sent!</p>}
+        </div>
+        <div className="flex w-1/2 items-center justify-center">
+          <img
+            src={actionData?.imageData || PLACEHOLDER_IMAGE}
+            alt="Message Preview"
+            className="border rounded shadow-md"
           />
-          <button type="submit" className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600">
-            Submit
-          </button>
-        </Form>
-        {actionData?.message && <p className="text-green-500">Message received: {actionData.message}</p>}
+        </div>
       </div>
     </div>
   );

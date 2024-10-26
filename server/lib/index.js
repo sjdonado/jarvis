@@ -92,7 +92,7 @@ export function imageDataToBMP(imageData, width, height) {
 }
 
 export function drawCenteredText(ctx, message, width, height, fontSize = 16, lineSpacing = 1.2) {
-  ctx.font = `${fontSize}px 'Rainy Hearts'`;
+  ctx.font = `${fontSize}px 'PixelOperator'`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillStyle = "black";
