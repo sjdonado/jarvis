@@ -3,9 +3,7 @@ import "dotenv/config";
 import { createRequestHandler } from "@remix-run/express";
 import express from "express";
 
-import { init } from "./shared/mqtt.server.mjs";
-
-init();
+import { systemUsageSetup } from "./shared/display.server.mjs";
 
 const viteDevServer =
   process.env.NODE_ENV === "production"
@@ -29,3 +27,5 @@ app.all("*", createRequestHandler({ build }));
 app.listen(3000, () => {
   console.log("App listening on http://localhost:3000");
 });
+
+systemUsageSetup();

@@ -1,5 +1,5 @@
 import type { ActionFunction, LoaderFunction } from "@remix-run/node";
-import { Form, useActionData, useLoaderData, redirect } from "@remix-run/react";
+import { Form, useActionData, useLoaderData, redirect, Link } from "@remix-run/react";
 import { useState, useEffect } from "react";
 
 import { sendMessage, scheduleRandomQuotes } from "../../shared/display.server.mjs";
@@ -7,20 +7,19 @@ import { WIDTH, HEIGHT } from "../../shared/constants.mjs";
 
 import { getSession, commitSession } from "../sessions.server";
 
-export const loader: LoaderFunction = async ({ request }) => {
-  const session = await getSession(request.headers.get("Cookie"));
-
-  const scheduledInterval = session.get("scheduledInterval") || null;
-
-  return { scheduledInterval };
-};
-
 export const action: ActionFunction = async ({ request }) => {
   const formData = await request.formData();
   const message = formData.get("message") as string;
   const scheduleInterval = formData.get("scheduleInterval");
 
   const session = await getSession(request.headers.get("Cookie"));
+
+  let imageData;
+
+  if (message) {
+    imageData = await sendMessage(message);
+    console.log("Submitted message:", message);
+  }
 
   if (scheduleInterval) {
     const interval = parseInt(scheduleInterval as string, 10);
@@ -35,12 +34,15 @@ export const action: ActionFunction = async ({ request }) => {
     });
   }
 
-  if (message) {
-    sendMessage(message);
-    console.log("Submitted message:", message);
-  }
+  return { message, imageData };
+};
 
-  return { message };
+export const loader: LoaderFunction = async ({ request }) => {
+  const session = await getSession(request.headers.get("Cookie"));
+
+  const scheduledInterval = session.get("scheduledInterval") || null;
+
+  return { scheduledInterval };
 };
 
 export default function Index() {
@@ -62,20 +64,18 @@ export default function Index() {
           <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Jarvis Control Center</h1>
         </header>
         <div className="flex justify-center">
-          {actionData?.imageData && (
-            <img
-              src={actionData.imageData}
-              alt="Message Preview"
-              className="border rounded shadow-md"
-              width={WIDTH}
-              height={HEIGHT}
-            />
-          )}
+          <img
+            src={actionData?.imageData}
+            alt="Message Preview"
+            className="border rounded shadow-md"
+            width={WIDTH}
+            height={HEIGHT}
+          />
         </div>
         <Form method="post" className="flex flex-col gap-4 w-full">
           <textarea
             name="message"
-            placeholder="Type your message or fetch a random quote"
+            placeholder="Type your message"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             className="rounded border border-gray-300 p-2 text-gray-700 h-32 resize-none"
@@ -106,6 +106,9 @@ export default function Index() {
           )}
         </div>
         {actionData?.message && <p className="text-green-500">Message sent!</p>}
+        <Link to="/logout" className="text-sm text-blue-500 hover:underline">
+          Logout
+        </Link>
       </div>
     </div>
   );

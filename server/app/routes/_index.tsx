@@ -1,5 +1,6 @@
 import { LoaderFunction } from "@remix-run/node";
 import { redirect } from "@remix-run/react";
+
 import { getSession } from "~/sessions.server";
 
 export const loader: LoaderFunction = async ({ request }) => {
