@@ -21,6 +21,10 @@
 #define QOS 1
 #define TIMEOUT 10000L
 
+// Define screen dimensions based on rotation
+#define SCREEN_WIDTH EPD_2in13_V4_HEIGHT // 250
+#define SCREEN_HEIGHT EPD_2in13_V4_WIDTH // 122
+
 // Global variables
 UBYTE *BlackImage = NULL;
 MQTTClient client;
@@ -70,6 +74,11 @@ void cleanup_and_exit(int exit_code) {
   exit(exit_code);
 }
 
+// Function to get text width
+int Get_Text_Width(const char *text, sFONT *font) {
+  return strlen(text) * font->Width;
+}
+
 // Function to update the status bar
 void update_statusbar(const char *status_text) {
   printf("Updating status bar with text: %s\n", status_text);
@@ -81,14 +90,17 @@ void update_statusbar(const char *status_text) {
 
   // Update the status bar area
   Paint_SelectImage(BlackImage);
-  Paint_SetRotate(ROTATE_0);
-  Paint_ClearWindows(statusbar_x, statusbar_y, EPD_2in13_V4_WIDTH - 1,
+  Paint_SetRotate(ROTATE_90);
+  Paint_ClearWindows(statusbar_x, statusbar_y, SCREEN_WIDTH - 1,
                      statusbar_height - 1, WHITE);
 
+  // Calculate text width for right alignment
+  int text_width = Get_Text_Width(status_text, &Font16);
+  int text_x = SCREEN_WIDTH - text_width - 5; // 5-pixel margin
+  int text_y = statusbar_y + (statusbar_height - Font16.Height) / 2;
+
   // Draw the status text
-  int text_x = EPD_2in13_V4_WIDTH - 5;
-  int text_y = statusbar_y + (statusbar_height / 2) - (Font16.Height / 2);
-  Paint_DrawString_EN(text_x, text_y, status_text, &Font16, WHITE, BLACK);
+  Paint_DrawString_EN(text_x, text_y, status_text, &Font16, BLACK, WHITE);
 
   // Refresh the status bar area
   EPD_2in13_V4_Display_Partial(BlackImage);
@@ -101,8 +113,10 @@ void update_display_area(const char *bmp_file) {
   const int statusbar_height = 20; // Must match with status bar height
   const int display_area_y = statusbar_height;
 
-  Paint_ClearWindows(0, display_area_y, EPD_2in13_V4_WIDTH - 1,
-                     EPD_2in13_V4_HEIGHT - 1, WHITE);
+  Paint_SelectImage(BlackImage);
+  Paint_SetRotate(ROTATE_90);
+  Paint_ClearWindows(0, display_area_y, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1,
+                     WHITE);
 
   // Load the BMP image into the display area
   // Ensure that the BMP is adjusted to not overwrite the status bar
@@ -112,7 +126,7 @@ void update_display_area(const char *bmp_file) {
   }
 
   // Refresh the display area
-  EPD_2in13_V4_Display_Fast(BlackImage);
+  EPD_2in13_V4_Display(BlackImage);
 }
 
 // MQTT message arrived callback
@@ -153,8 +167,8 @@ int msgarrvd(void *context, char *topicName, int topicLen,
     printf("BMP image saved to %s\n", bmp_file);
 
     // Check BMP dimensions before displaying
-    int expected_width = EPD_2in13_V4_WIDTH;
-    int expected_height = EPD_2in13_V4_HEIGHT - 20; // Adjust for status bar
+    int expected_width = SCREEN_WIDTH;
+    int expected_height = SCREEN_HEIGHT - 20; // Adjust for status bar
 
     if (GUI_BMPfile_CheckDimensions(bmp_file, expected_width,
                                     expected_height)) {
@@ -204,9 +218,8 @@ int main(void) {
   DEV_Delay_ms(100);
 
   UWORD Imagesize =
-      ((EPD_2in13_V4_WIDTH % 8 == 0) ? (EPD_2in13_V4_WIDTH / 8)
-                                     : (EPD_2in13_V4_WIDTH / 8 + 1)) *
-      EPD_2in13_V4_HEIGHT;
+      ((SCREEN_WIDTH % 8 == 0) ? (SCREEN_WIDTH / 8) : (SCREEN_WIDTH / 8 + 1)) *
+      SCREEN_HEIGHT;
   BlackImage = (UBYTE *)malloc(Imagesize);
   if (!BlackImage) {
     fprintf(stderr, "Failed to allocate memory for BlackImage.\n");
@@ -214,7 +227,7 @@ int main(void) {
   }
 
   // Initialize the image buffer for the full display
-  Paint_NewImage(BlackImage, EPD_2in13_V4_WIDTH, EPD_2in13_V4_HEIGHT, 0, WHITE);
+  Paint_NewImage(BlackImage, SCREEN_WIDTH, SCREEN_HEIGHT, ROTATE_90, WHITE);
   Paint_SelectImage(BlackImage);
   Paint_Clear(WHITE);
 
