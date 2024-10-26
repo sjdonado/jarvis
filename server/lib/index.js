@@ -26,8 +26,8 @@ export function imageDataToBMP(imageData, width, height) {
   bmpBuffer.writeUInt16LE(bitsPerPixel, 28); // Bits per pixel
   bmpBuffer.writeUInt32LE(0, 30); // Compression (BI_RGB)
   bmpBuffer.writeUInt32LE(pixelArraySize, 34); // Image size
-  bmpBuffer.writeInt32LE(2835, 38); // X pixels per meter (72 DPI)
-  bmpBuffer.writeInt32LE(2835, 42); // Y pixels per meter (72 DPI)
+  bmpBuffer.writeInt32LE(5110, 38); // X pixels per meter (DPI 130)
+  bmpBuffer.writeInt32LE(5110, 42); // Y pixels per meter (DPI 130)
   bmpBuffer.writeUInt32LE(0, 46); // Total colors
   bmpBuffer.writeUInt32LE(0, 50); // Important colors
 
@@ -89,4 +89,58 @@ export function imageDataToBMP(imageData, width, height) {
   }
 
   return bmpBuffer;
+}
+
+export function drawCenteredText(ctx, message, width, height, fontSize = 16, lineSpacing = 1.2) {
+  ctx.font = `${fontSize}px 'Rainy Hearts'`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "black";
+
+  // Split the message into initial words for wrapping
+  const words = message.split(/\s+/);
+  const lines = [];
+  let currentLine = words[0];
+
+  // Word wrapping logic
+  for (let i = 1; i < words.length; i++) {
+    const word = words[i];
+    const testLine = `${currentLine} ${word}`;
+    const testWidth = ctx.measureText(testLine).width;
+
+    if (testWidth > width) {
+      // If line exceeds the width, push the current line and start a new one
+      lines.push(currentLine);
+      currentLine = word;
+
+      // Stop if we reach the maximum number of lines
+      if (lines.length === 4) { // 4 lines already added, 5th line for truncation check
+        currentLine = `${currentLine}...`;
+        break;
+      }
+    } else {
+      // Add word to the current line if it fits
+      currentLine = testLine;
+    }
+  }
+  lines.push(currentLine); // Push the final line
+
+  // Truncate to a maximum of 5 lines
+  if (lines.length > 5) {
+    lines[4] = `${lines[4]}...`; // Add ellipsis to the last visible line
+    lines.length = 5; // Limit to 5 lines
+  }
+
+  // Calculate the height for each line and the total text block height
+  const lineHeight = fontSize * lineSpacing;
+  const textBlockHeight = lines.length * lineHeight;
+
+  // Start drawing from a vertically centered Y position
+  const startY = (height - textBlockHeight) / 2 + lineHeight / 2;
+
+  // Draw each line centered horizontally
+  lines.forEach((line, index) => {
+    const yPosition = startY + index * lineHeight;
+    ctx.fillText(line, width / 2, yPosition);
+  });
 }
