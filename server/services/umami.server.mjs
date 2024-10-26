@@ -8,7 +8,7 @@ function parseUnamiUri(uri) {
     throw new Error("Invalid UNAMI_URI format. Expected format: http://username:password@host");
   }
 
-  const [, ,username, password, host] = match;
+  const [, , username, password, host] = match;
 
   return {
     username,
@@ -19,10 +19,15 @@ function parseUnamiUri(uri) {
 
 const { username, password, apiUrl } = parseUnamiUri(process.env.UNAMI_URI);
 
-let _token, _websites, _lastFetch, _stats;
+let _token, _tokenLastFetch, _websites, _stats, _statsLastFetch;
 
 async function getBearerToken() {
-  if (_token) return _token;
+  const now = Date.now();
+
+  // Refresh token every 24 hours
+  if (_token && _tokenLastFetch && now - _tokenLastFetch < 24 * 60 * 60 * 1000) {
+    return _token;
+  }
 
   const response = await fetch(`${apiUrl}/auth/login`, {
     method: "POST",
@@ -38,8 +43,8 @@ async function getBearerToken() {
   }
 
   const data = await response.json();
-
   _token = data.token;
+  _tokenLastFetch = now; // Update token fetch time
 
   return _token;
 }
@@ -89,8 +94,8 @@ async function getVisitorStats(token, websiteId) {
 export async function fetchUmamiData() {
   const now = Date.now();
 
-  // Check if data is cached and within 10 minutes
-  if (_stats && _lastFetch && now - _lastFetch < 10 * 60 * 1000) {
+  // Check if data is cached and within 60 minutes
+  if (_stats && _statsLastFetch && now - _statsLastFetch < 60 * 60 * 1000) {
     return _stats;
   }
 
@@ -123,7 +128,7 @@ export async function fetchUmamiData() {
     );
 
     _stats = aggregateStats;
-    _lastFetch = now;
+    _statsLastFetch = now;
 
     console.log("[umami] cache updated:", _stats);
 
