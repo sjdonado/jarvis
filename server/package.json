@@ -5,18 +5,20 @@
   "type": "module",
   "scripts": {
     "build": "remix vite:build",
-    "dev": "node ./server.js",
+    "dev": "node ./server.mjs",
     "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
-    "start": "cross-env NODE_ENV=production node ./server.js",
+    "start": "cross-env NODE_ENV=production node ./server.mjs",
     "typecheck": "tsc"
   },
   "dependencies": {
     "@remix-run/express": "^2.13.1",
     "@remix-run/node": "^2.13.1",
     "@remix-run/react": "^2.13.1",
+    "canvas": "^2.11.2",
     "cross-env": "^7.0.3",
     "express": "^4.21.1",
     "isbot": "^4.1.0",
+    "mqtt": "^5.10.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
