@@ -96,8 +96,13 @@ int GUI_BMPfile_CheckDimensions(const char *bmp_file, int expected_width,
 
 int msgarrvd(void *context, char *topicName, int topicLen,
              MQTTClient_message *message) {
-  printf("Message arrived\n");
-  printf("     topic: %s\n", topicName);
+  time_t now = time(NULL);
+  struct tm t;
+  localtime_r(&now, &t);
+  char time_str[20];
+  strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", &t);
+
+  printf("[%s] Message arrived: %s\n", time_str, topicName);
 
   if (message->payloadlen <= 0) {
     printf("Empty message received.\n");
