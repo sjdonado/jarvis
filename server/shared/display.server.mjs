@@ -11,6 +11,21 @@ import { getCpuUsage, getMemUsage } from "./os.server.mjs";
 import { getRandomQuote } from "../services/zenquotes.server.mjs";
 import { fetchUmamiData } from "../services/umami.server.mjs";
 
+let _canvas;
+
+const getCanvas = () => {
+  if (!_canvas) {
+    _canvas = createCanvas(WIDTH, HEIGHT);
+  }
+
+  const ctx = _canvas.getContext("2d");
+
+  ctx.fillStyle = "white";
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+  return ctx;
+};
+
 export async function systemUsageSetup() {
   const refreshStatusBar = async () => {
     const client = await getClient();
@@ -39,12 +54,7 @@ export async function sendMessage(message) {
   const fontPath = path.join("./fonts/PixelOperator.ttf");
   registerFont(fontPath, { family: "PixelOperator" });
 
-  const canvas = createCanvas(WIDTH, HEIGHT);
-  const ctx = canvas.getContext("2d");
-
-  ctx.fillStyle = "white";
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
-
+  const ctx = getCanvas();
   drawCenteredText(ctx, message, WIDTH, HEIGHT);
 
   try {

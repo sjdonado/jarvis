@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { sendMessage } from "../../shared/display.server.mjs";
 import { WIDTH, HEIGHT } from "../../shared/constants.mjs";
 import { getSession } from "../sessions.server";
+
 import ScheduleRamdonQuotes from "~/components/ScheduleRamdonQuotes";
 
 export const action: ActionFunction = async ({ request }) => {
