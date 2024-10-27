@@ -2,36 +2,19 @@ import type { ActionFunction, LoaderFunction } from "@remix-run/node";
 import { Form, useActionData, useLoaderData, redirect, Link } from "@remix-run/react";
 import { useState, useEffect } from "react";
 
-import { sendMessage, scheduleRandomQuotes } from "../../shared/display.server.mjs";
+import { sendMessage } from "../../shared/display.server.mjs";
 import { WIDTH, HEIGHT } from "../../shared/constants.mjs";
-
-import { getSession, commitSession } from "../sessions.server";
+import { getSession } from "../sessions.server";
+import ScheduleRamdonQuotes from "~/components/ScheduleRamdonQuotes";
 
 export const action: ActionFunction = async ({ request }) => {
   const formData = await request.formData();
   const message = formData.get("message") as string;
-  const scheduleInterval = formData.get("scheduleInterval");
-
-  const session = await getSession(request.headers.get("Cookie"));
 
   let imageData;
-
   if (message) {
     imageData = await sendMessage(message);
     console.log("Submitted message:", message);
-  }
-
-  if (scheduleInterval) {
-    const interval = parseInt(scheduleInterval as string, 10);
-
-    session.set("scheduledInterval", interval);
-    scheduleRandomQuotes(interval);
-
-    return redirect("/", {
-      headers: {
-        "Set-Cookie": await commitSession(session),
-      },
-    });
   }
 
   return { message, imageData };
@@ -54,12 +37,13 @@ export default function Index() {
   const actionData = useActionData<typeof action>();
   const loaderData = useLoaderData<typeof loader>();
 
+  const [imageData, setImageData] = useState();
   const [message, setMessage] = useState("");
-  const [scheduleInterval, setScheduleInterval] = useState(loaderData?.scheduledInterval ?? "");
 
   useEffect(() => {
-    if (actionData?.message) {
+    if (actionData) {
       setMessage(actionData.message as string);
+      setImageData(actionData.imageData);
     }
   }, [actionData]);
 
@@ -71,7 +55,7 @@ export default function Index() {
         </header>
         <div className="flex justify-center">
           <img
-            src={actionData?.imageData}
+            src={imageData}
             alt="Message Preview"
             className="border rounded shadow-md"
             width={WIDTH}
@@ -91,27 +75,7 @@ export default function Index() {
           </button>
           {actionData?.message && <p className="text-green-500 text-xs">Message sent!</p>}
         </Form>
-        <div className="mt-4">
-          <h2 className="text-lg font-semibold">Schedule Random Quotes</h2>
-          <Form method="post" className="flex items-center gap-2 mt-2">
-            <input
-              type="number"
-              name="scheduleInterval"
-              placeholder="Interval in minutes"
-              value={scheduleInterval}
-              onChange={(e) => setScheduleInterval(e.target.value)}
-              className="rounded border border-gray-300 p-2 text-gray-700 w-full"
-            />
-            <button type="submit" className="rounded bg-purple-500 px-4 py-2 text-white hover:bg-purple-600">
-              Schedule
-            </button>
-          </Form>
-          {loaderData?.scheduledInterval && (
-            <p className="text-xs text-green-500 mt-2">
-              Random quotes are being sent every {loaderData.scheduledInterval} minutes.
-            </p>
-          )}
-        </div>
+        <ScheduleRamdonQuotes initialScheduleInterval={loaderData.scheduledInterval} />
         <Link to="/logout" className="text-sm text-red-500 underline">
           Logout
         </Link>
