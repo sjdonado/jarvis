@@ -1,7 +1,5 @@
 FROM node:22
 
-ENV NODE_ENV=production
-
 EXPOSE 3000
 
 RUN apt-get update && \
@@ -16,9 +14,9 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY package.json ./
 
-RUN NODE_ENV=development npm install
+RUN npm install
 
 COPY . .
 
