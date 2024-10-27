@@ -1,13 +1,10 @@
 > Jarvis It’s alive! Here to inspire and keep a watchful eye on things 👀
 
-<div align="center">
-  <img width="600" alt="Screenshot 2024-10-26 at 21 04 26" src="https://github.com/user-attachments/assets/e5359978-0764-4b8f-af0d-92fee8d34514">
-  <img width="300" alt="IMG_3599" src="https://github.com/user-attachments/assets/3f196904-bfba-4b0c-bb10-2b99a08a3b22">
-</div>
+<img width="900" alt="Screenshot 2024-10-27 at 13 24 33" src="https://github.com/user-attachments/assets/b2064f79-85ae-40e4-9426-25b6380d73dc">
 
 <div align="center">
-  <img width="600" alt="Screenshot 2024-10-26 at 21 50 01" src="https://github.com/user-attachments/assets/093683cd-09ef-46ac-855e-ff9eb8c49273">
-  <img width="300" alt="IMG_3599" src="https://github.com/user-attachments/assets/017956e5-9368-4efc-bd0f-fa1b8a50aa8c">
+  <img width="300" alt="IMG_3603" src="https://github.com/user-attachments/assets/5b98a666-aa89-49d5-80e6-4c8cc2b04bcf">
+  <img width="300" alt="IMG_3602" src="https://github.com/user-attachments/assets/90aabb81-2482-47b3-92b3-75cb0453bb5c">
 </div>
 
 ## Setup
