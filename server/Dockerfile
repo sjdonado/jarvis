@@ -1,21 +1,20 @@
-FROM node:22
+FROM node:22-alpine
 
 EXPOSE 3000
 
-RUN apt-get update && \
-    apt-get install -y \
-    libcairo2-dev \
-    libjpeg-dev \
-    libpango1.0-dev \
-    libgif-dev \
-    build-essential \
-    g++ && \
-    rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
 
-COPY package*.json ./
+RUN apk add --no-cache \
+    build-base \
+    cairo-dev \
+    pango-dev \
+    jpeg-dev \
+    giflib-dev \
+    librsvg \
+    libpng-dev \
+    pixman-dev
 
+COPY package*.json ./
 RUN npm ci
 
 COPY . .

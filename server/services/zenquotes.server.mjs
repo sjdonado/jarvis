@@ -8,7 +8,7 @@ export async function getRandomQuote() {
       throw new Error(`Failed to fetch quote - ${data}`);
     }
 
-    const message = `"${data[0].q}"\n ― ${data[0].a}`;
+    const message = `"${data[0].q}" - ${data[0].a}`;
 
     return message;
   } catch (error) {

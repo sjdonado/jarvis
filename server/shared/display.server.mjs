@@ -4,28 +4,12 @@ import { createCanvas, registerFont } from "canvas";
 
 import { WIDTH, HEIGHT } from "./constants.mjs";
 
-import { imageDataToBMP, drawCenteredText } from "./canvas.server.mjs";
-import { getClient, DISPLAY_TOPIC, STATUSBAR_TOPIC } from "./mqtt.server.mjs";
-import { getCpuUsage, getMemUsage } from "./os.server.mjs";
+import { imageDataToBMP, drawCenteredText } from "../lib/canvas.server.mjs";
+import { getCpuUsage, getMemUsage } from "../lib/os.server.mjs";
+import { getClient, DISPLAY_TOPIC, STATUSBAR_TOPIC } from "../lib/mqtt.server.mjs";
 
 import { getRandomQuote } from "../services/zenquotes.server.mjs";
 import { fetchUmamiData } from "../services/umami.server.mjs";
-
-let _canvas;
-
-const getCanvas = () => {
-  if (!_canvas) {
-    _canvas = createCanvas(WIDTH, HEIGHT);
-  }
-
-  const ctx = _canvas.getContext("2d", { alpha: false, desynchronized: true });
-
-  ctx.fillStyle = "white";
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
-  ctx.beginPath();
-
-  return ctx;
-};
 
 export async function systemUsageSetup() {
   const refreshStatusBar = async () => {
@@ -55,7 +39,12 @@ export async function sendMessage(message) {
   const fontPath = path.join("./fonts/PixelOperator.ttf");
   registerFont(fontPath, { family: "PixelOperator" });
 
-  const ctx = getCanvas();
+  const canvas = createCanvas(WIDTH, HEIGHT);
+
+  const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
+  ctx.fillStyle = "white";
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
   drawCenteredText(ctx, message, WIDTH, HEIGHT);
 
   try {
