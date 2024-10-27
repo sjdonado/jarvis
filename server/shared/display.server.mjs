@@ -18,10 +18,11 @@ const getCanvas = () => {
     _canvas = createCanvas(WIDTH, HEIGHT);
   }
 
-  const ctx = _canvas.getContext("2d");
+  const ctx = _canvas.getContext("2d", { alpha: false, desynchronized: true });
 
   ctx.fillStyle = "white";
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  ctx.beginPath();
 
   return ctx;
 };
