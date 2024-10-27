@@ -11,7 +11,6 @@ import { getCpuUsage, getMemUsage } from "./os.server.mjs";
 import { getRandomQuote } from "../services/zenquotes.server.mjs";
 import { fetchUmamiData } from "../services/umami.server.mjs";
 
-
 export async function systemUsageSetup() {
   const refreshStatusBar = async () => {
     const client = await getClient();
@@ -19,9 +18,9 @@ export async function systemUsageSetup() {
     const cpuUsage = await getCpuUsage();
     const memUsage = getMemUsage();
 
-    const { visitors } = await fetchUmamiData();
+    const { pageviews, visitors } = await fetchUmamiData();
 
-    const statusText = `${visitors} users | ${memUsage} MB | ${cpuUsage}%`;
+    const statusText = `${visitors}/${pageviews} | ${memUsage}MB | ${cpuUsage}%`;
 
     client.publish(STATUSBAR_TOPIC, statusText, { qos: 0, retain: false }, (err) => {
       if (err) {
