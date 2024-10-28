@@ -4,13 +4,14 @@ import { useState, useEffect } from "react";
 import { WIDTH, HEIGHT } from "../config/constants.mjs";
 
 export default function SendMessage() {
-  const fetcher = useFetcher();
+  const fetcher = useFetcher<{ message: string; imageData: string }>();
   const [message, setMessage] = useState("");
   const [imageData, setImageData] = useState<string | undefined>();
 
   useEffect(() => {
     if (fetcher.data) {
       const { message: newMessage, imageData: newImageData } = fetcher.data;
+
       setMessage(newMessage || "");
       setImageData(newImageData);
     }
@@ -19,6 +20,9 @@ export default function SendMessage() {
   return (
     <section className="flex flex-col items-center mt-4 gap-4 w-full">
       <h2 className="text-lg font-semibold">Send message</h2>
+      <div className="flex justify-center">
+        <img src={imageData} alt="Message Preview" className="border rounded shadow-md" width={WIDTH} height={HEIGHT} />
+      </div>
       <fetcher.Form method="post" action="/send-message" className="flex flex-col gap-4 w-full">
         <textarea
           name="message"
@@ -32,17 +36,6 @@ export default function SendMessage() {
         </button>
         {fetcher.data?.message && <p className="text-green-500 text-xs">Message sent!</p>}
       </fetcher.Form>
-      {imageData && (
-        <div className="flex justify-center">
-          <img
-            src={imageData}
-            alt="Message Preview"
-            className="border rounded shadow-md"
-            width={WIDTH}
-            height={HEIGHT}
-          />
-        </div>
-      )}
     </section>
   );
 }

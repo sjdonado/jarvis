@@ -8,6 +8,7 @@ export const action: ActionFunction = async ({ request }) => {
 
   if (screenSignal === "on" || screenSignal === "off") {
     await sendScreenSignal("screen", screenSignal);
+
     return null;
   }
 

@@ -24,7 +24,6 @@ export default function ScreenControl() {
           Turn Off
         </button>
       </div>
-      {fetcher.state === "submitting" && <p className="text-xs text-gray-500 mt-1">Sending screen signal...</p>}
     </section>
   );
 }
