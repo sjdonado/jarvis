@@ -17,8 +17,11 @@
 #include "EPD_2in13_V4.h"
 
 #define CLIENT_ID "pizero"
+
 #define STATUSBAR_TOPIC "statusbar"
 #define DISPLAY_TOPIC "display"
+#define SYSTEM_TOPIC "system"
+
 #define QOS 1
 #define TIMEOUT 10000L
 
@@ -26,15 +29,44 @@
 #define SCREEN_HEIGHT EPD_2in13_V4_HEIGHT // 250
 #define STATUSBAR_HEIGHT 20
 
-// Global variables
 UBYTE *BlackImage = NULL;
 MQTTClient client;
 MQTTClient client = NULL;
 volatile sig_atomic_t exit_requested = 0; // Flag for exiting the main loop
 
+void turn_on_screen() {
+  if (!BlackImage) {
+    EPD_2in13_V4_Init();
+    EPD_2in13_V4_Clear();
+
+    UWORD Imagesize = ((EPD_2in13_V4_WIDTH % 8 == 0) ? (EPD_2in13_V4_WIDTH / 8) : (EPD_2in13_V4_WIDTH / 8 + 1)) * EPD_2in13_V4_HEIGHT;
+
+    if ((BlackImage = (UBYTE *)malloc(Imagesize)) == NULL) {
+      Debug("Failed to apply for black memory...\r\n");
+      cleanup_and_exit(-1);
+    }
+
+    Paint_NewImage(BlackImage, SCREEN_WIDTH, SCREEN_HEIGHT, ROTATE_90, WHITE);
+    Paint_SelectImage(BlackImage);
+    Paint_Clear(WHITE);
+
+    printf("Screen turned on\n");
+  }
+}
+
+void turn_off_screen() {
+  if (BlackImage) {
+    free(BlackImage);
+    BlackImage = NULL;
+    EPD_2in13_V4_Clear();
+    EPD_2in13_V4_Sleep();
+    printf("Screen turned off\n");
+  }
+}
+
 void update_statusbar(const char *status_text) {
   if (!BlackImage) {
-    fprintf(stderr, "BlackImage is not initialized\n");
+    printf("Screen is off, skipping status bar update.\n");
     return;
   }
 
@@ -55,7 +87,7 @@ void update_statusbar(const char *status_text) {
 
 void update_display_area(const char *bmp_file) {
   if (!BlackImage) {
-    fprintf(stderr, "BlackImage is not initialized\n");
+    printf("Screen is off, skipping display area update.\n");
     return;
   }
 
@@ -116,7 +148,9 @@ int msgarrvd(void *context, char *topicName, int topicLen,
     snprintf(status_text, sizeof(status_text), "%.*s", message->payloadlen,
              (char *)message->payload);
     update_statusbar(status_text);
-  } else if (strcmp(topicName, DISPLAY_TOPIC) == 0) {
+  }
+
+  if (strcmp(topicName, DISPLAY_TOPIC) == 0) {
     const char *bmp_file = "/tmp/jarvis_display.bmp";
     FILE *fp = fopen(bmp_file, "wb");
     if (!fp) {
@@ -135,8 +169,18 @@ int msgarrvd(void *context, char *topicName, int topicLen,
     } else {
       fprintf(stderr, "Error: BMP dimensions do not match display area\n");
     }
-  } else {
-    printf("Unknown topic received: %s\n", topicName);
+  }
+
+  if (strcmp(topicName, SYSTEM_TOPIC) == 0) {
+    char system_text[256];
+    snprintf(config_text, sizeof(config_text), "%.*s", message->payloadlen,
+             (char *)message->payload);
+
+    if (strstr(system_text, "screen:on")) {
+      turn_on_screen();
+    } else if (strstr(config_text, "screen:off")) {
+      turn_off_screen();
+    }
   }
 
   MQTTClient_freeMessage(&message);
@@ -145,8 +189,7 @@ int msgarrvd(void *context, char *topicName, int topicLen,
 }
 
 void connlost(void *context, char *cause) {
-  printf("\nConnection lost\n");
-  printf("     cause: %s\n", cause);
+  printf("\nConnection lost: %s\n", cause);
 }
 
 void delivered(void *context, MQTTClient_deliveryToken dt) {
@@ -205,7 +248,6 @@ int setup_mqtt_client(const char *mqtt_uri, MQTTClient *client) {
     return -1;
   }
 
-  // Check if the protocol indicates TLS
   if (strncmp(broker_uri, "ssl://", 6) == 0 ||
       strncmp(broker_uri, "tls://", 6) == 0) {
     use_tls = 1;
@@ -264,14 +306,7 @@ void cleanup_and_exit(int exit_code) {
   }
 
   if (BlackImage) {
-    printf("Turning off the screen...\n");
-
-    free(BlackImage);
-    BlackImage = NULL;
-
-    EPD_2in13_V4_Clear();
-    EPD_2in13_V4_Sleep();
-    DEV_Module_Exit();
+    turn_off_screen();
   }
 
   exit(exit_code);
@@ -294,26 +329,13 @@ int main(void) {
 
   MQTTClient_subscribe(client, STATUSBAR_TOPIC, QOS);
   MQTTClient_subscribe(client, DISPLAY_TOPIC, QOS);
+  MQTTClient_subscribe(client, SYSTEM_TOPIC, QOS);
 
   if (DEV_Module_Init() != 0) {
     cleanup_and_exit(-1);
   }
 
-  EPD_2in13_V4_Init();
-  EPD_2in13_V4_Clear();
-
-  UWORD Imagesize =
-      ((EPD_2in13_V4_WIDTH % 8 == 0) ? (EPD_2in13_V4_WIDTH / 8)
-                                     : (EPD_2in13_V4_WIDTH / 8 + 1)) *
-      EPD_2in13_V4_HEIGHT;
-  if ((BlackImage = (UBYTE *)malloc(Imagesize)) == NULL) {
-    Debug("Failed to apply for black memory...\r\n");
-    cleanup_and_exit(-1);
-  }
-
-  Paint_NewImage(BlackImage, SCREEN_WIDTH, SCREEN_HEIGHT, ROTATE_90, WHITE);
-  Paint_SelectImage(BlackImage);
-  Paint_Clear(WHITE);
+  turn_on_screen();
 
   signal(SIGINT, handle_sigint);
   printf("Running... Press Ctrl+C to exit.\n");
