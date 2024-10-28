@@ -1,6 +1,6 @@
 > Jarvis It’s alive! Here to inspire and keep a watchful eye on things 👀
 
-<img width="900" alt="Screenshot 2024-10-27 at 13 24 33" src="https://github.com/user-attachments/assets/b2064f79-85ae-40e4-9426-25b6380d73dc">
+<img width="1200" alt="Screenshot 2024-10-28 at 21 33 15" src="https://github.com/user-attachments/assets/07efbb9d-fd86-4027-bf9d-eca0307dca27">
 
 <div align="center">
   <img width="300" alt="IMG_3603" src="https://github.com/user-attachments/assets/5b98a666-aa89-49d5-80e6-4c8cc2b04bcf">
