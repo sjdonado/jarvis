@@ -2,8 +2,9 @@ import type { ActionFunction, LoaderFunction } from "@remix-run/node";
 import { Form, useActionData, useLoaderData, redirect, Link } from "@remix-run/react";
 import { useState, useEffect } from "react";
 
-import { sendMessage } from "../../shared/display.server.mjs";
-import { WIDTH, HEIGHT } from "../../shared/constants.mjs";
+import { sendMessage } from "../topics/display.server.mjs";
+import { WIDTH, HEIGHT } from "../config/constants.mjs";
+
 import { getSession } from "../sessions.server";
 
 import ScheduleRamdonQuotes from "~/components/ScheduleRamdonQuotes";

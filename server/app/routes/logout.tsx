@@ -2,7 +2,7 @@ import type { LoaderFunction } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
 
 import { getSession, destroySession } from "../sessions.server";
-import { cancelScheduledQuotes } from "../../shared/display.server.mjs";
+import { cancelScheduledQuotes } from "../topics/display.server.mjs";
 
 export const loader: LoaderFunction = async ({ request }) => {
   const session = await getSession(request.headers.get("Cookie"));

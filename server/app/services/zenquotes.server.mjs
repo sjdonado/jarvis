@@ -1,4 +1,4 @@
-import fetch from 'node-fetch';
+import fetch from "node-fetch";
 
 export async function getRandomQuote() {
   try {
@@ -12,9 +12,7 @@ export async function getRandomQuote() {
 
     return message;
   } catch (error) {
-    console.error("Error fetching quote:", error);
+    console.error("Error fetching quote");
+    throw new Error(error);
   }
-
-  return null;
 }
-

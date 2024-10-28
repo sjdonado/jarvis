@@ -2,7 +2,7 @@ import type { ActionFunction } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
 
 import { getSession, commitSession } from "../sessions.server";
-import { scheduleRandomQuotes } from "../../shared/display.server.mjs";
+import { scheduleRandomQuotes } from "../topics/display.server.mjs";
 
 export const action: ActionFunction = async ({ request }) => {
   const formData = await request.formData();
@@ -11,8 +11,9 @@ export const action: ActionFunction = async ({ request }) => {
 
   if (scheduleInterval) {
     const interval = parseInt(scheduleInterval as string, 10);
+
+    await scheduleRandomQuotes(interval);
     session.set("scheduledInterval", interval);
-    scheduleRandomQuotes(interval);
 
     return redirect("/", {
       headers: {

@@ -2,36 +2,12 @@ import path from "path";
 
 import { createCanvas, registerFont } from "canvas";
 
-import { WIDTH, HEIGHT } from "./constants.mjs";
+import { WIDTH, HEIGHT } from "../config/constants.mjs";
 
 import { imageDataToBMP, drawCenteredText } from "../lib/canvas.server.mjs";
-import { getCpuUsage, getMemUsage } from "../lib/os.server.mjs";
-import { getClient, DISPLAY_TOPIC, STATUSBAR_TOPIC } from "../lib/mqtt.server.mjs";
+import { getClient, DISPLAY_TOPIC } from "../lib/mqtt.server.mjs";
 
 import { getRandomQuote } from "../services/zenquotes.server.mjs";
-import { fetchUmamiData } from "../services/umami.server.mjs";
-
-export async function systemUsageSetup() {
-  const refreshStatusBar = async () => {
-    const client = await getClient();
-
-    const cpuUsage = await getCpuUsage();
-    const memUsage = getMemUsage();
-
-    const { pageviews, visitors } = await fetchUmamiData();
-
-    const statusText = `${visitors}/${pageviews} | ${memUsage}MB | ${cpuUsage}%`;
-
-    client.publish(STATUSBAR_TOPIC, statusText, { qos: 0, retain: false }, (err) => {
-      if (err) {
-        console.error("Failed to publish system usage:", err);
-      }
-    });
-  };
-
-  await refreshStatusBar();
-  setInterval(refreshStatusBar, 1500);
-}
 
 export async function sendMessage(message) {
   const client = await getClient();
@@ -77,10 +53,8 @@ export async function scheduleRandomQuotes(intervalMinutes) {
   const sendQuote = async () => {
     const quote = await getRandomQuote();
 
-    if (quote) {
-      await sendMessage(quote);
-      console.log("Scheduled quote sent:", quote);
-    }
+    await sendMessage(quote);
+    console.log("Scheduled quote sent:", quote);
   };
 
   const intervalMs = intervalMinutes * 60 * 1000;
