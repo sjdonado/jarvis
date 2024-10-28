@@ -1,8 +1,9 @@
 import type { ActionFunction, LoaderFunction } from "@remix-run/node";
 import { Form, useActionData, redirect } from "@remix-run/react";
 import { useState } from "react";
+
 import { getSession, commitSession } from "../sessions.server";
-import { SERVER_API_KEY } from "~/constants.server";
+import { ENV } from "../config/env.server.mjs";
 
 export const loader: LoaderFunction = async ({ request }) => {
   const session = await getSession(request.headers.get("Cookie"));
@@ -19,7 +20,7 @@ export const action: ActionFunction = async ({ request }) => {
   const formData = await request.formData();
   const apiKey = formData.get("apiKey");
 
-  if (apiKey === SERVER_API_KEY) {
+  if (apiKey === ENV.server.apiKey) {
     const session = await getSession(request.headers.get("Cookie"));
     session.set("authenticated", true);
 
@@ -53,9 +54,7 @@ export default function Login() {
               className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
             />
           </div>
-          {actionData?.error && (
-            <p className="text-red-500 text-sm">{actionData.error}</p>
-          )}
+          {actionData?.error && <p className="text-red-500 text-sm">{actionData.error}</p>}
           <div>
             <button
               type="submit"

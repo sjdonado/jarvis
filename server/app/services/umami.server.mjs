@@ -1,5 +1,7 @@
 import fetch from "node-fetch";
 
+import { ENV } from "../config/env.server.mjs";
+
 function parseUnamiUri(uri) {
   const urlPattern = /^(https?:\/\/)?([^:/\s]+):([^@]+)@([^/]+)(\/.*)?$/;
   const match = uri.match(urlPattern);
@@ -17,7 +19,7 @@ function parseUnamiUri(uri) {
   };
 }
 
-const { username, password, apiUrl } = parseUnamiUri(process.env.UNAMI_URI);
+const { username, password, apiUrl } = parseUnamiUri(ENV.services.umami.apiUrl);
 
 let _token, _tokenLastFetch, _websites, _websitesLastFetch, _stats, _statsLastFetch;
 

@@ -1,11 +1,11 @@
 import { createCookieSessionStorage } from "@remix-run/node";
 
-import { SESSION_SECRET } from "./constants.server";
+import { ENV } from "./config/env.server.mjs";
 
 export const sessionStorage = createCookieSessionStorage({
   cookie: {
     name: "__session",
-    secrets: [SESSION_SECRET],
+    secrets: [ENV.server.secret],
     sameSite: "lax",
     path: "/",
     httpOnly: true,
