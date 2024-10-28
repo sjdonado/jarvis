@@ -35,9 +35,9 @@ export default function ScheduleRandomQuotes({
   }, [scheduleInterval, scheduledInterval.updatedAt]);
 
   return (
-    <div className="mt-4">
-      <h2 className="text-lg font-semibold">Schedule Random Quotes</h2>
-      <fetcher.Form method="post" action="/schedule" className="flex items-center gap-2 mt-2">
+    <section>
+      <h2 className="text-lg font-semibold text-center">Schedule Random Quotes</h2>
+      <fetcher.Form method="post" action="/schedule-random-quotes" className="flex items-center gap-2 mt-2">
         <input
           type="number"
           name="scheduleInterval"
@@ -53,6 +53,6 @@ export default function ScheduleRandomQuotes({
       <p className="text-xs text-gray-500 mt-1">
         Next quote scheduled at: {nextScheduledTime} (in {countdown})
       </p>
-    </div>
+    </section>
   );
 }
