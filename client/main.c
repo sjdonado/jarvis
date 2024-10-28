@@ -34,12 +34,40 @@ MQTTClient client;
 MQTTClient client = NULL;
 volatile sig_atomic_t exit_requested = 0; // Flag for exiting the main loop
 
+void turn_off_screen() {
+  if (BlackImage) {
+    free(BlackImage);
+    BlackImage = NULL;
+    EPD_2in13_V4_Clear();
+    EPD_2in13_V4_Sleep();
+    printf("Screen turned off\n");
+  }
+}
+
+void cleanup_and_exit(int exit_code) {
+  if (client) {
+    printf("Disconnecting from MQTT server...\n");
+
+    MQTTClient_disconnect(client, 10000);
+    MQTTClient_destroy(&client);
+  }
+
+  if (BlackImage) {
+    turn_off_screen();
+  }
+
+  exit(exit_code);
+}
+
 void turn_on_screen() {
   if (!BlackImage) {
     EPD_2in13_V4_Init();
     EPD_2in13_V4_Clear();
 
-    UWORD Imagesize = ((EPD_2in13_V4_WIDTH % 8 == 0) ? (EPD_2in13_V4_WIDTH / 8) : (EPD_2in13_V4_WIDTH / 8 + 1)) * EPD_2in13_V4_HEIGHT;
+    UWORD Imagesize =
+        ((EPD_2in13_V4_WIDTH % 8 == 0) ? (EPD_2in13_V4_WIDTH / 8)
+                                       : (EPD_2in13_V4_WIDTH / 8 + 1)) *
+        EPD_2in13_V4_HEIGHT;
 
     if ((BlackImage = (UBYTE *)malloc(Imagesize)) == NULL) {
       Debug("Failed to apply for black memory...\r\n");
@@ -54,15 +82,8 @@ void turn_on_screen() {
   }
 }
 
-void turn_off_screen() {
-  if (BlackImage) {
-    free(BlackImage);
-    BlackImage = NULL;
-    EPD_2in13_V4_Clear();
-    EPD_2in13_V4_Sleep();
-    printf("Screen turned off\n");
-  }
-}
+// Function to handle SIGINT (Ctrl+C)
+void handle_sigint(int sig) { exit_requested = 1; }
 
 void update_statusbar(const char *status_text) {
   if (!BlackImage) {
@@ -173,12 +194,12 @@ int msgarrvd(void *context, char *topicName, int topicLen,
 
   if (strcmp(topicName, SYSTEM_TOPIC) == 0) {
     char system_text[256];
-    snprintf(config_text, sizeof(config_text), "%.*s", message->payloadlen,
+    snprintf(system_text, sizeof(system_text), "%.*s", message->payloadlen,
              (char *)message->payload);
 
     if (strstr(system_text, "screen:on")) {
       turn_on_screen();
-    } else if (strstr(config_text, "screen:off")) {
+    } else if (strstr(system_text, "screen:off")) {
       turn_off_screen();
     }
   }
@@ -296,24 +317,6 @@ int setup_mqtt_client(const char *mqtt_uri, MQTTClient *client) {
 
   return 0;
 }
-
-void cleanup_and_exit(int exit_code) {
-  if (client) {
-    printf("Disconnecting from MQTT server...\n");
-
-    MQTTClient_disconnect(client, 10000);
-    MQTTClient_destroy(&client);
-  }
-
-  if (BlackImage) {
-    turn_off_screen();
-  }
-
-  exit(exit_code);
-}
-
-// Function to handle SIGINT (Ctrl+C)
-void handle_sigint(int sig) { exit_requested = 1; }
 
 int main(void) {
   const char *MQTT_ADDRESS = getenv("MQTT_ADDRESS");
