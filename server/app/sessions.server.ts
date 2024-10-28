@@ -1,4 +1,4 @@
-import { createCookieSessionStorage } from "@remix-run/node";
+import { createCookieSessionStorage, redirect } from "@remix-run/node";
 
 import { ENV } from "./config/env.server.mjs";
 
@@ -14,3 +14,14 @@ export const sessionStorage = createCookieSessionStorage({
 });
 
 export const { getSession, commitSession, destroySession } = sessionStorage;
+
+export const isAuthenticated = async (request: Request) => {
+  const session = await getSession(request.headers.get("Cookie"));
+  const authenticated = session.get("authenticated");
+
+  if (!authenticated) {
+    throw redirect("/login");
+  }
+
+  return session;
+};

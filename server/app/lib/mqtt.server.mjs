@@ -4,6 +4,7 @@ import { ENV } from "../config/env.server.mjs";
 
 export const STATUSBAR_TOPIC = "statusbar";
 export const DISPLAY_TOPIC = "display";
+export const SYSTEM_TOPIC = "system";
 
 let _client;
 
@@ -15,4 +16,3 @@ export const getClient = async () => {
 
   return _client;
 };
-

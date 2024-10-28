@@ -39,7 +39,7 @@ export async function sendMessage(message) {
 
     return `data:image/bmp;base64,${bmpBuffer.toString("base64")}`;
   } catch (err) {
-    console.error("Failed to create BMP buffer for welcome message:", err);
+    console.error("Failed to publish display message:", err);
   }
 }
 

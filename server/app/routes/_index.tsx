@@ -1,11 +1,11 @@
 import type { ActionFunction, LoaderFunction } from "@remix-run/node";
-import { Form, useActionData, useLoaderData, redirect, Link } from "@remix-run/react";
+import { Form, useActionData, useLoaderData, Link } from "@remix-run/react";
 import { useState, useEffect } from "react";
 
 import { sendMessage } from "../topics/display.server.mjs";
 import { WIDTH, HEIGHT } from "../config/constants.mjs";
 
-import { getSession } from "../sessions.server";
+import { isAuthenticated } from "../sessions.server";
 
 import ScheduleRamdonQuotes from "~/components/ScheduleRamdonQuotes";
 
@@ -23,12 +23,7 @@ export const action: ActionFunction = async ({ request }) => {
 };
 
 export const loader: LoaderFunction = async ({ request }) => {
-  const session = await getSession(request.headers.get("Cookie"));
-  const isAuthenticated = session.get("authenticated");
-
-  if (!isAuthenticated) {
-    return redirect("/login");
-  }
+  const session = await isAuthenticated(request);
 
   return {
     scheduledInterval: {
