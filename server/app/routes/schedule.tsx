@@ -14,6 +14,7 @@ export const action: ActionFunction = async ({ request }) => {
 
     await scheduleRandomQuotes(interval);
     session.set("scheduledInterval", interval);
+    session.set("scheduledIntervalUpdatedAt", Date.now());
 
     return redirect("/", {
       headers: {

@@ -30,14 +30,17 @@ export const loader: LoaderFunction = async ({ request }) => {
     return redirect("/login");
   }
 
-  const scheduledInterval = session.get("scheduledInterval") || null;
-
-  return { scheduledInterval };
+  return {
+    scheduledInterval: {
+      value: session.get("scheduledInterval") || null,
+      updatedAt: session.get("scheduledIntervalUpdatedAt") || null,
+    },
+  };
 };
 
 export default function Index() {
   const actionData = useActionData<typeof action>();
-  const loaderData = useLoaderData<typeof loader>();
+  const { scheduledInterval } = useLoaderData<typeof loader>();
 
   const [imageData, setImageData] = useState();
   const [message, setMessage] = useState("");
@@ -77,7 +80,7 @@ export default function Index() {
           </button>
           {actionData?.message && <p className="text-green-500 text-xs">Message sent!</p>}
         </Form>
-        <ScheduleRamdonQuotes initialScheduleInterval={loaderData.scheduledInterval} />
+        <ScheduleRamdonQuotes scheduledInterval={scheduledInterval} />
         <Link to="/logout" className="text-sm text-red-500 underline">
           Logout
         </Link>
