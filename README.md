@@ -1,6 +1,6 @@
 > Jarvis It’s alive! Here to inspire and keep a watchful eye on things 👀
 
-<img width="1200" alt="Screenshot 2024-10-28 at 21 33 15" src="https://github.com/user-attachments/assets/07efbb9d-fd86-4027-bf9d-eca0307dca27">
+<img width="1200" alt="Screenshot 2024-10-29 at 07 44 21" src="https://github.com/user-attachments/assets/20e35afc-239d-4d34-8cd2-2744ec79401b">
 
 <div align="center">
   <img width="300" alt="IMG_3603" src="https://github.com/user-attachments/assets/5b98a666-aa89-49d5-80e6-4c8cc2b04bcf">
@@ -49,8 +49,9 @@ otherwise, run `sudo raspi-config` and enable Inerface Options > I4 and Interfac
 ```bash
 export MQTT_ADDRESS="ssl://<username>:<password>@<host>:<port>"
 export SERVER_API_KEY=
-export SESSION_SECRET=
+export SECRET=
 export UNAMI_URI=
+export ZENQUOTES_URI=
 npm start
 ```
 
