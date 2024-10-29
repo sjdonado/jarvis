@@ -1,4 +1,4 @@
-import { getClient, SYSTEM_TOPIC } from "../lib/mqtt.server.mjs";
+import { getMQTTClient, SYSTEM_TOPIC } from "../lib/mqtt.server.mjs";
 
 /**
  * @typedef {("screen" | "sleep")} CommandKey
@@ -17,7 +17,7 @@ import { getClient, SYSTEM_TOPIC } from "../lib/mqtt.server.mjs";
  * @returns {Promise<void>} Resolves when the message is published.
  */
 export async function sendScreenSignal(key, value) {
-  const client = await getClient();
+  const client = await getMQTTClient();
 
   const message = `${key}:${value}`;
 

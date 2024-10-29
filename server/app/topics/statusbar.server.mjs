@@ -1,4 +1,4 @@
-import { getClient, STATUSBAR_TOPIC } from "../lib/mqtt.server.mjs";
+import { getMQTTClient, STATUSBAR_TOPIC } from "../lib/mqtt.server.mjs";
 
 import { getCpuUsage, getMemUsage } from "../lib/os.server.mjs";
 import { fetchUmamiData } from "../services/umami.server.mjs";
@@ -9,7 +9,7 @@ import { fetchUmamiData } from "../services/umami.server.mjs";
  */
 export async function systemUsageListenter() {
   const sendStatusBarUpdate = async () => {
-    const client = await getClient();
+    const client = await getMQTTClient();
 
     const cpuUsage = await getCpuUsage();
     const memUsage = getMemUsage();

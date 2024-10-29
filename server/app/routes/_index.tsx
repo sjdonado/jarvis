@@ -1,39 +1,48 @@
 import { useLoaderData, Link } from "@remix-run/react";
 import { LoaderFunction } from "@remix-run/node";
 
-import { isAuthenticated } from "../sessions.server";
+import { HEIGHT, WIDTH } from "~/config/constants.mjs";
+import { isAuthenticated } from "~/sessions.server";
+import { getStore } from "~/lib/store.server.mjs";
 
 import ScheduleRandomQuotes from "~/sections/ScheduleRamdonQuotes";
 import ScreenControl from "~/sections/ScreenControl";
 import SendMessage from "~/sections/SendMessage";
 
 export const loader: LoaderFunction = async ({ request }) => {
-  const session = await isAuthenticated(request);
+  await isAuthenticated(request);
+
+  const store = await getStore();
 
   return {
     scheduledInterval: {
-      value: session.get("scheduledInterval") || null,
-      updatedAt: session.get("scheduledIntervalUpdatedAt") || null,
+      value: store.get("scheduledInterval"),
+      updatedAt: store.get("scheduledIntervalUpdatedAt"),
     },
+    display: store.get("display"),
+    screen: store.get("screen"),
   };
 };
 
 export default function Index() {
-  const { scheduledInterval } = useLoaderData<typeof loader>();
+  const { scheduledInterval, display, screen } = useLoaderData<typeof loader>();
 
   return (
-    <div className="flex h-screen items-center justify-center">
-      <div className="flex w-1/4 flex-col max-w-5xl gap-10">
-        <header className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Jarvis Control Center</h1>
-        </header>
-        <ScreenControl />
+    <div className="flex h-screen flex-col items-center justify-center gap-12">
+      <header className="text-center">
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Jarvis Control Center</h1>
+      </header>
+      <div className="flex max-w-5xl flex-col gap-6">
+        <div className="flex justify-center">
+          <img src={display} alt="Message Preview" className="rounded border shadow-md" width={WIDTH} height={HEIGHT} />
+        </div>
+        <ScreenControl screen={screen} />
         <SendMessage />
         <ScheduleRandomQuotes scheduledInterval={scheduledInterval} />
-        <Link to="/logout" className="text-sm text-red-500 underline text-center">
-          Logout
-        </Link>
       </div>
+      <Link to="/logout" className="text-center text-sm text-red-500 underline">
+        Logout
+      </Link>
     </div>
   );
 }

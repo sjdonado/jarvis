@@ -5,17 +5,16 @@ import { createCanvas, registerFont } from "canvas";
 import { WIDTH, HEIGHT } from "../config/constants.mjs";
 
 import { imageDataToBMP, drawCenteredText } from "../lib/canvas.server.mjs";
-import { getClient, DISPLAY_TOPIC } from "../lib/mqtt.server.mjs";
+import { getMQTTClient, DISPLAY_TOPIC } from "../lib/mqtt.server.mjs";
 
 import { getRandomQuote } from "../services/zenquotes.server.mjs";
 
 /**
  * Publishes a message as a BMP image to an MQTT topic.
  * @param {string} message - The text message to display on the BMP image.
- * @returns {Promise<string | undefined>} A base64-encoded BMP image string, or undefined if publishing fails.
  */
 export async function sendMessage(message) {
-  const client = await getClient();
+  const client = await getMQTTClient();
 
   const fontPath = path.join("./fonts/PixelOperator.ttf");
   registerFont(fontPath, { family: "PixelOperator" });
@@ -42,7 +41,7 @@ export async function sendMessage(message) {
       }
     });
 
-    return `data:image/bmp;base64,${bmpBuffer.toString("base64")}`;
+    console.log("Submitted message:", message);
   } catch (err) {
     console.error("Failed to publish display message:", err);
   }
@@ -64,7 +63,6 @@ export async function scheduleRandomQuotes(intervalMinutes) {
     const quote = await getRandomQuote();
 
     await sendMessage(quote);
-    console.log("Scheduled quote sent:", quote);
   };
 
   const intervalMs = intervalMinutes * 60 * 1000;

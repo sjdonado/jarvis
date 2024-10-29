@@ -1,5 +1,5 @@
-import { useFetcher } from "@remix-run/react";
 import { useState, useEffect } from "react";
+import { useFetcher } from "@remix-run/react";
 
 export default function ScheduleRandomQuotes({
   scheduledInterval,
@@ -10,14 +10,22 @@ export default function ScheduleRandomQuotes({
   };
 }) {
   const fetcher = useFetcher();
-
   const [scheduleInterval, setScheduleInterval] = useState(scheduledInterval.value);
-  const [nextScheduledTime, setNextScheduledTime] = useState("");
+  const [nextScheduledTime, setNextScheduledTime] = useState<string | null>(null);
   const [countdown, setCountdown] = useState("");
 
   useEffect(() => {
+    if (!scheduleInterval) return;
+
     const intervalInMs = scheduleInterval * 60 * 1000;
     const nextTime = new Date(scheduledInterval.updatedAt + intervalInMs);
+
+    if (isNaN(nextTime.getTime())) {
+      setNextScheduledTime(null);
+      setCountdown("");
+      return;
+    }
+
     setNextScheduledTime(nextTime.toLocaleTimeString());
 
     const updateCountdown = () => {
@@ -36,23 +44,29 @@ export default function ScheduleRandomQuotes({
 
   return (
     <section>
-      <h2 className="text-lg font-semibold text-center">Schedule Random Quotes</h2>
-      <fetcher.Form method="post" action="/schedule-random-quotes" className="flex items-center gap-2 mt-2">
+      <h2 className="text-center text-lg font-semibold">Schedule Random Quotes</h2>
+      <fetcher.Form method="post" action="/schedule-random-quotes" className="mt-2 flex items-center gap-2">
+        <label htmlFor="scheduleInterval" className="sr-only">
+          Schedule Interval (minutes)
+        </label>
         <input
           type="number"
+          id="scheduleInterval"
           name="scheduleInterval"
           placeholder="Interval in minutes"
           value={scheduleInterval}
           onChange={(e) => setScheduleInterval(e.target.valueAsNumber || 0)}
-          className="rounded border border-gray-300 p-2 text-gray-700 w-full"
+          className="w-full rounded border border-gray-300 p-2 text-gray-700"
         />
         <button type="submit" className="rounded bg-purple-500 px-4 py-2 text-white hover:bg-purple-600">
           Schedule
         </button>
       </fetcher.Form>
-      <p className="text-xs text-gray-500 mt-1">
-        Next quote scheduled at: {nextScheduledTime} (in {countdown})
-      </p>
+      {nextScheduledTime && (
+        <p className="mt-1 text-xs text-gray-500">
+          Next quote scheduled at: {nextScheduledTime} (in {countdown})
+        </p>
+      )}
     </section>
   );
 }
