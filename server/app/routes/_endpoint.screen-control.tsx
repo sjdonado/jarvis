@@ -12,5 +12,5 @@ export const action: ActionFunction = async ({ request }) => {
 
   await sendScreenSignal("screen", screenSignal);
 
-  return null;
+  return true;
 };

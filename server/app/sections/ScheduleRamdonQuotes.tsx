@@ -58,7 +58,7 @@ export default function ScheduleRandomQuotes({
           onChange={(e) => setScheduleInterval(e.target.valueAsNumber || 0)}
           className="w-full rounded border border-gray-300 p-2 text-gray-700"
         />
-        <button type="submit" className="rounded bg-purple-500 px-4 py-2 text-white hover:bg-purple-600">
+        <button type="submit" className="rounded bg-purple-500 px-4 py-2 text-white">
           Schedule
         </button>
       </fetcher.Form>

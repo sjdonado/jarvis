@@ -1,7 +1,8 @@
 import { useFetcher } from "@remix-run/react";
+import clsx from "clsx";
 import { useState, useEffect } from "react";
 
-export default function SendMessage() {
+export default function SendMessage({ screen }: { screen: boolean }) {
   const fetcher = useFetcher<{ message: string }>();
   const [message, setMessage] = useState("");
 
@@ -24,7 +25,11 @@ export default function SendMessage() {
           onChange={(e) => setMessage(e.target.value)}
           className="h-32 resize-none rounded border border-gray-300 p-2 text-gray-700"
         />
-        <button type="submit" className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600">
+        <button
+          type="submit"
+          className={clsx("cursor-pointer rounded px-4 py-2 text-white", screen ? "bg-blue-500 " : "cursor-default bg-gray-300")}
+          disabled={!screen}
+        >
           Submit
         </button>
         {fetcher.data?.message && <p className="text-xs text-green-500">Message sent!</p>}
