@@ -2,6 +2,11 @@ import fetch from "node-fetch";
 
 import { ENV } from "../config/env.server.mjs";
 
+/**
+ * @param {string} uri - The URI in the format: http://username:password@host.
+ * @returns {{username: string, password: string, apiUrl: string}} An object containing the username, password, and API URL.
+ * @throws {Error} Throws an error if the URI is not in the expected format.
+ */
 function parseUnamiUri(uri) {
   const urlPattern = /^(https?:\/\/)?([^:/\s]+):([^@]+)@([^/]+)(\/.*)?$/;
   const match = uri.match(urlPattern);
@@ -23,6 +28,10 @@ const { username, password, apiUrl } = parseUnamiUri(ENV.services.umami.apiUrl);
 
 let _token, _tokenLastFetch, _websites, _websitesLastFetch, _stats, _statsLastFetch;
 
+/**
+ * @returns {Promise<string>} The bearer token for authentication.
+ * @throws {Error} Throws an error if authentication fails.
+ */
 async function getBearerToken() {
   const now = Date.now();
 
@@ -53,6 +62,11 @@ async function getBearerToken() {
   return _token;
 }
 
+/**
+ * @param {string} token - The bearer token for authorization.
+ * @returns {Promise<Array>} An array of websites with their details.
+ * @throws {Error} Throws an error if the website list cannot be retrieved.
+ */
 async function listWebsites(token) {
   const now = Date.now();
 
@@ -81,6 +95,12 @@ async function listWebsites(token) {
   return _websites;
 }
 
+/**
+ * @param {string} token - The bearer token for authorization.
+ * @param {string} websiteId - The ID of the website to retrieve stats for.
+ * @returns {Promise<Object>} An object containing visitor statistics for the website.
+ * @throws {Error} Throws an error if visitor statistics cannot be retrieved.
+ */
 async function getVisitorStats(token, websiteId) {
   const now = new Date();
   const startOfYear = new Date(now.getFullYear(), 0, 1);

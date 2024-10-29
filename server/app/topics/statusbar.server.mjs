@@ -3,6 +3,10 @@ import { getClient, STATUSBAR_TOPIC } from "../lib/mqtt.server.mjs";
 import { getCpuUsage, getMemUsage } from "../lib/os.server.mjs";
 import { fetchUmamiData } from "../services/umami.server.mjs";
 
+/**
+ * Periodically retrieves system usage metrics (CPU, memory, and website data) and publishes them to the status bar topic.
+ * @returns {Promise<void>} A promise that resolves when the first status update is sent.
+ */
 export async function systemUsageListenter() {
   const sendStatusBarUpdate = async () => {
     const client = await getClient();

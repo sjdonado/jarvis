@@ -1,3 +1,10 @@
+/**
+ * Converts image data to a BMP file format buffer.
+ * @param {ImageData} imageData - The image data to convert, typically from a canvas context.
+ * @param {number} width - The width of the image in pixels.
+ * @param {number} height - The height of the image in pixels.
+ * @returns {Buffer} A buffer containing the BMP formatted image data.
+ */
 export function imageDataToBMP(imageData, width, height) {
   const fileHeaderSize = 14;
   const dibHeaderSize = 40;
@@ -12,7 +19,7 @@ export function imageDataToBMP(imageData, width, height) {
   const bmpBuffer = Buffer.alloc(fileSize);
 
   // BMP File Header
-  bmpBuffer.write('BM', 0); // Signature
+  bmpBuffer.write("BM", 0); // Signature
   bmpBuffer.writeUInt32LE(fileSize, 2); // File size
   bmpBuffer.writeUInt16LE(0, 6); // Reserved
   bmpBuffer.writeUInt16LE(0, 8); // Reserved
@@ -33,9 +40,9 @@ export function imageDataToBMP(imageData, width, height) {
 
   // Color Palette (2 colors for monochrome)
   // White (Index 0)
-  bmpBuffer.writeUInt8(0xFF, 54); // Blue
-  bmpBuffer.writeUInt8(0xFF, 55); // Green
-  bmpBuffer.writeUInt8(0xFF, 56); // Red
+  bmpBuffer.writeUInt8(0xff, 54); // Blue
+  bmpBuffer.writeUInt8(0xff, 55); // Green
+  bmpBuffer.writeUInt8(0xff, 56); // Red
   bmpBuffer.writeUInt8(0x00, 57); // Reserved
   // Black (Index 1)
   bmpBuffer.writeUInt8(0x00, 58); // Blue
@@ -91,6 +98,15 @@ export function imageDataToBMP(imageData, width, height) {
   return bmpBuffer;
 }
 
+/**
+ * Draws centered, wrapped text on a canvas context.
+ * @param {CanvasRenderingContext2D} ctx - The canvas context to draw on.
+ * @param {string} message - The text message to display.
+ * @param {number} width - The width of the drawing area.
+ * @param {number} height - The height of the drawing area.
+ * @param {number} [fontSize=16] - The font size to use for the text.
+ * @param {number} [lineSpacing=1.2] - The line spacing multiplier to apply.
+ */
 export function drawCenteredText(ctx, message, width, height, fontSize = 16, lineSpacing = 1.2) {
   ctx.font = `${fontSize}px 'PixelOperator'`;
   ctx.textAlign = "center";
@@ -114,7 +130,8 @@ export function drawCenteredText(ctx, message, width, height, fontSize = 16, lin
       currentLine = word;
 
       // Stop if we reach the maximum number of lines
-      if (lines.length === 4) { // 4 lines already added, 5th line for truncation check
+      if (lines.length === 4) {
+        // 4 lines already added, 5th line for truncation check
         currentLine = `${currentLine}...`;
         break;
       }

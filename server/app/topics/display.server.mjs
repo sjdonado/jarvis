@@ -9,6 +9,11 @@ import { getClient, DISPLAY_TOPIC } from "../lib/mqtt.server.mjs";
 
 import { getRandomQuote } from "../services/zenquotes.server.mjs";
 
+/**
+ * Publishes a message as a BMP image to an MQTT topic.
+ * @param {string} message - The text message to display on the BMP image.
+ * @returns {Promise<string | undefined>} A base64-encoded BMP image string, or undefined if publishing fails.
+ */
 export async function sendMessage(message) {
   const client = await getClient();
 
@@ -45,6 +50,11 @@ export async function sendMessage(message) {
 
 let scheduleIntervalId = null;
 
+/**
+ * Schedules the automatic sending of random quotes at a specified interval.
+ * @param {number} intervalMinutes - The interval in minutes at which to send quotes.
+ * @returns {Promise<void>}
+ */
 export async function scheduleRandomQuotes(intervalMinutes) {
   if (scheduleIntervalId) {
     clearInterval(scheduleIntervalId);
@@ -63,6 +73,9 @@ export async function scheduleRandomQuotes(intervalMinutes) {
   scheduleIntervalId = setInterval(sendQuote, intervalMs);
 }
 
+/**
+ * Cancels the scheduled sending of random quotes.
+ */
 export function cancelScheduledQuotes() {
   if (scheduleIntervalId) {
     clearInterval(scheduleIntervalId);
