@@ -2,18 +2,27 @@ import path from "path";
 
 import { createCanvas, registerFont } from "canvas";
 
-import { WIDTH, HEIGHT } from "../config/constants.mjs";
+import { WIDTH, HEIGHT } from "~/config/constants.mjs";
 
-import { imageDataToBMP, drawCenteredText } from "../lib/canvas.server.mjs";
-import { getMQTTClient, DISPLAY_TOPIC } from "../lib/mqtt.server.mjs";
+import { imageDataToBMP, drawCenteredText } from "~/lib/canvas.server.mjs";
+import { getMQTTClient, DISPLAY_TOPIC } from "~/lib/mqtt.server.mjs";
+import { getStore } from "~/lib/store.server.mjs";
 
-import { getRandomQuote } from "../services/zenquotes.server.mjs";
+import { getRandomQuote } from "~/services/zenquotes.server.mjs";
 
 /**
  * Publishes a message as a BMP image to an MQTT topic.
  * @param {string} message - The text message to display on the BMP image.
  */
 export async function sendMessage(message) {
+  const store = await getStore();
+  const isScreenOn = store.get("screen");
+
+  if (!isScreenOn) {
+    console.log("Screen is off, skipped: ", message);
+    return;
+  }
+
   const client = await getMQTTClient();
 
   const fontPath = path.join("./fonts/PixelOperator.ttf");

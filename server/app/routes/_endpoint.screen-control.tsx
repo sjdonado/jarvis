@@ -1,6 +1,6 @@
 import { type ActionFunction } from "@remix-run/node";
 
-import { sendScreenSignal } from "../topics/system.server.mjs";
+import { sendScreenSignal } from "~/topics/system.server.mjs";
 
 export const action: ActionFunction = async ({ request }) => {
   const formData = await request.formData();

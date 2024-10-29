@@ -1,4 +1,4 @@
-import { DISPLAY_TOPIC, getMQTTClient, SYSTEM_TOPIC } from "./mqtt.server.mjs";
+import { DISPLAY_TOPIC, getMQTTClient, SYSTEM_TOPIC } from "~/lib/mqtt.server.mjs";
 
 class KeyValueStore {
   constructor() {

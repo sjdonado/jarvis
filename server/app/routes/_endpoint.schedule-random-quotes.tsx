@@ -1,9 +1,9 @@
 import { redirect, type ActionFunction } from "@remix-run/node";
 
-import { isAuthenticated } from "../sessions.server";
-import { getStore } from "../lib/store.server.mjs";
+import { isAuthenticated } from "~/sessions.server";
+import { getStore } from "~/lib/store.server.mjs";
 
-import { scheduleRandomQuotes } from "../topics/display.server.mjs";
+import { scheduleRandomQuotes } from "~/topics/display.server.mjs";
 
 export const action: ActionFunction = async ({ request }) => {
   await isAuthenticated(request);

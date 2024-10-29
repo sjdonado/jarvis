@@ -1,7 +1,7 @@
 import type { ActionFunction } from "@remix-run/node";
 import { json } from "@remix-run/node";
 
-import { sendMessage } from "../topics/display.server.mjs";
+import { sendMessage } from "~/topics/display.server.mjs";
 
 export const action: ActionFunction = async ({ request }) => {
   const formData = await request.formData();

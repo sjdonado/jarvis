@@ -1,6 +1,6 @@
 import mqtt from "mqtt";
 
-import { ENV } from "../config/env.server.mjs";
+import { ENV } from "~/config/env.server.mjs";
 
 export const STATUSBAR_TOPIC = "statusbar";
 export const DISPLAY_TOPIC = "display";

@@ -1,4 +1,4 @@
-import { getMQTTClient, SYSTEM_TOPIC } from "../lib/mqtt.server.mjs";
+import { getMQTTClient, SYSTEM_TOPIC } from "~/lib/mqtt.server.mjs";
 
 /**
  * @typedef {("screen" | "sleep")} CommandKey
