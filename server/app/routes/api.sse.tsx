@@ -1,6 +1,12 @@
+import { LoaderFunction } from "@remix-run/node";
+
+import { isAuthenticated } from "~/sessions.server";
+
 import { getStore } from "~/lib/store.server.mjs";
 
-export const loader = async () => {
+export const loader: LoaderFunction = async ({ request }) => {
+  await isAuthenticated(request);
+
   const store = await getStore();
 
   const stream = new ReadableStream({
@@ -17,7 +23,6 @@ export const loader = async () => {
         controller.enqueue(`data: ${data}\n\n`);
       };
 
-      // Listen for store changes
       const unsubscribe = store.subscribe((key) => {
         if (["scheduledInterval", "scheduledIntervalUpdatedAt", "display", "screen"].includes(key)) {
           sendUpdate();
@@ -27,7 +32,6 @@ export const loader = async () => {
       // Reconnect if the connection drops
       controller.enqueue(`retry: 10000\n\n`);
 
-      // Ensure unsubscribe is called to prevent memory leaks
       controller.close = () => {
         unsubscribe();
       };

@@ -45,7 +45,7 @@ export default function ScheduleRandomQuotes({
   return (
     <section>
       <h2 className="text-center text-lg font-semibold">Schedule Random Quotes</h2>
-      <fetcher.Form method="post" action="/schedule-random-quotes" className="mt-2 flex items-center gap-2">
+      <fetcher.Form method="post" action="/api/schedule-random-quotes" className="mt-2 flex items-center gap-2">
         <label htmlFor="scheduleInterval" className="sr-only">
           Schedule Interval (minutes)
         </label>

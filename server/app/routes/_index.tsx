@@ -33,7 +33,7 @@ export default function Index() {
   const [screen, setScreen] = useState(initialData.screen);
 
   useEffect(() => {
-    const eventSource = new EventSource("/sse");
+    const eventSource = new EventSource("/api/sse");
 
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);

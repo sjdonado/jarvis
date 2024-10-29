@@ -17,7 +17,7 @@ export default function SendMessage({ screen }: { screen: boolean }) {
   return (
     <section className="mt-4 flex w-full flex-col items-center gap-4">
       <h2 className="text-lg font-semibold">Send message</h2>
-      <fetcher.Form method="post" action="/send-message" className="flex w-full flex-col gap-4">
+      <fetcher.Form method="post" action="/api/send-message" className="flex w-full flex-col gap-4">
         <textarea
           name="message"
           placeholder="Type your message"

@@ -7,7 +7,7 @@ export default function ScreenControl({ screen }: { screen: boolean }) {
   const [isScreenOn, setIsScreenOn] = useState<boolean>(screen);
 
   const handleScreenSignal = (signal: "on" | "off") => {
-    fetcher.submit({ screenSignal: signal }, { method: "post", action: "/screen-control" });
+    fetcher.submit({ screenSignal: signal }, { method: "post", action: "/api/screen-control" });
   };
 
   useEffect(() => {
