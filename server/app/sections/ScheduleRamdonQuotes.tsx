@@ -30,9 +30,12 @@ export default function ScheduleRandomQuotes({
 
     const updateCountdown = () => {
       const timeRemaining = Math.max(0, Math.floor((nextTime.getTime() - Date.now()) / 1000));
-      const minutes = Math.floor(timeRemaining / 60);
+      
+      const hours = Math.floor((timeRemaining % (24 * 60 * 60)) / (60 * 60));
+      const minutes = Math.floor((timeRemaining % (60 * 60)) / 60);
       const seconds = timeRemaining % 60;
-      setCountdown(`${minutes}m ${seconds}s`);
+
+      setCountdown(`${hours}h ${minutes}m ${seconds}s`);
     };
 
     updateCountdown();

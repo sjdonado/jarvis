@@ -1,4 +1,4 @@
-import { redirect, type ActionFunction } from "@remix-run/node";
+import { type ActionFunction } from "@remix-run/node";
 
 import { isAuthenticated } from "~/sessions.server";
 import { getStore } from "~/lib/store.server.mjs";
@@ -23,5 +23,5 @@ export const action: ActionFunction = async ({ request }) => {
     store.set("scheduledIntervalUpdatedAt", updatedAt);
   }
 
-  return redirect("/");
+  return true;
 };
