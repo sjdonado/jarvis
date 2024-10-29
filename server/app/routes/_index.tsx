@@ -60,7 +60,7 @@ export default function Index() {
       </header>
       <div className="flex max-w-5xl flex-col gap-6">
         <div className="flex justify-center">
-          <img src={display} alt={display ? "Message Preview" : undefined} className="rounded border shadow-md" width={WIDTH} height={HEIGHT} />
+          <img src={display} alt={display ? "Message Preview" : ""} className="rounded border shadow-md" width={WIDTH} height={HEIGHT} />
         </div>
         <ScreenControl screen={screen} />
         <SendMessage screen={screen}/>

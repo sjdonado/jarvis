@@ -2,13 +2,13 @@ import path from "path";
 
 import { createCanvas, registerFont } from "canvas";
 
-import { WIDTH, HEIGHT } from "~/config/constants.mjs";
+import { WIDTH, HEIGHT } from "../config/constants.mjs";
 
-import { imageDataToBMP, drawCenteredText } from "~/lib/canvas.server.mjs";
-import { getMQTTClient, DISPLAY_TOPIC } from "~/lib/mqtt.server.mjs";
-import { getStore } from "~/lib/store.server.mjs";
+import { imageDataToBMP, drawCenteredText } from "../lib/canvas.server.mjs";
+import { getMQTTClient, DISPLAY_TOPIC } from "../lib/mqtt.server.mjs";
+import { getStore } from "../lib/store.server.mjs";
 
-import { getRandomQuote } from "~/services/zenquotes.server.mjs";
+import { getRandomQuote } from "../services/zenquotes.server.mjs";
 
 /**
  * Publishes a message as a BMP image to an MQTT topic.

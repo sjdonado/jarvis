@@ -1,7 +1,7 @@
-import { getMQTTClient, STATUSBAR_TOPIC } from "~/lib/mqtt.server.mjs";
-import { getCpuUsage, getMemUsage } from "~/lib/os.server.mjs";
+import { getMQTTClient, STATUSBAR_TOPIC } from "../lib/mqtt.server.mjs";
+import { getCpuUsage, getMemUsage } from "../lib/os.server.mjs";
 
-import { fetchUmamiData } from "~/services/umami.server.mjs";
+import { fetchUmamiData } from "../services/umami.server.mjs";
 
 /**
  * Periodically retrieves system usage metrics (CPU, memory, and website data) and publishes them to the status bar topic.
