@@ -16,7 +16,7 @@ export default function SendMessage({ screen }: { screen: boolean }) {
 
   return (
     <section className="mt-4 flex w-full flex-col items-center gap-4">
-      <h2 className="text-lg font-semibold">Send message</h2>
+      <h2 className="text-lg font-semibold">Send Message</h2>
       <fetcher.Form method="post" action="/api/send-message" className="flex w-full flex-col gap-4">
         <textarea
           name="message"
@@ -27,7 +27,10 @@ export default function SendMessage({ screen }: { screen: boolean }) {
         />
         <button
           type="submit"
-          className={clsx("cursor-pointer rounded px-4 py-2 text-white", screen ? "bg-blue-500 " : "cursor-default bg-gray-300")}
+          className={clsx(
+            "rounded px-4 py-2 text-white",
+            screen ? "cursor-pointer bg-blue-500" : "cursor-default bg-gray-300"
+          )}
           disabled={!screen}
         >
           Submit

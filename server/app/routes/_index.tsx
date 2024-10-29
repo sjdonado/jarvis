@@ -64,7 +64,7 @@ export default function Index() {
         </div>
         <ScreenControl screen={screen} />
         <SendMessage screen={screen}/>
-        <ScheduleRandomQuotes scheduledInterval={scheduledInterval} />
+        <ScheduleRandomQuotes screen={screen} scheduledInterval={scheduledInterval} />
       </div>
       <Link to="/logout" className="text-center text-sm text-red-500 underline">
         Logout

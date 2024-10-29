@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
 import { useFetcher } from "@remix-run/react";
+import clsx from "clsx";
 
 export default function ScheduleRandomQuotes({
+  screen,
   scheduledInterval,
 }: {
+  screen: boolean;
   scheduledInterval: {
     value: number;
     updatedAt: number;
@@ -30,7 +33,7 @@ export default function ScheduleRandomQuotes({
 
     const updateCountdown = () => {
       const timeRemaining = Math.max(0, Math.floor((nextTime.getTime() - Date.now()) / 1000));
-      
+
       const hours = Math.floor((timeRemaining % (24 * 60 * 60)) / (60 * 60));
       const minutes = Math.floor((timeRemaining % (60 * 60)) / 60);
       const seconds = timeRemaining % 60;
@@ -61,7 +64,14 @@ export default function ScheduleRandomQuotes({
           onChange={(e) => setScheduleInterval(e.target.valueAsNumber || 0)}
           className="w-full rounded border border-gray-300 p-2 text-gray-700"
         />
-        <button type="submit" className="rounded bg-purple-500 px-4 py-2 text-white">
+        <button
+          type="submit"
+          className={clsx(
+            "rounded px-4 py-2 text-white",
+            screen ? "cursor-pointer bg-purple-500" : "cursor-default bg-gray-300"
+          )}
+          disabled={!screen}
+        >
           Schedule
         </button>
       </fetcher.Form>

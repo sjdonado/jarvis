@@ -63,6 +63,8 @@ let scheduleIntervalId = null;
  * @returns {Promise<void>}
  */
 export async function scheduleRandomQuotes(intervalMinutes) {
+  const store = await getStore();
+
   if (scheduleIntervalId) {
     clearInterval(scheduleIntervalId);
   }
@@ -71,12 +73,14 @@ export async function scheduleRandomQuotes(intervalMinutes) {
     const quote = await getRandomQuote();
 
     await sendMessage(quote);
+    store.set("scheduledIntervalUpdatedAt", Date.now());
   };
 
   const intervalMs = intervalMinutes * 60 * 1000;
 
   await sendQuote();
   scheduleIntervalId = setInterval(sendQuote, intervalMs);
+  store.set("scheduledInterval", intervalMinutes);
 }
 
 /**
