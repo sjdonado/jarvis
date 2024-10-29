@@ -1,5 +1,6 @@
 import { getMQTTClient, STATUSBAR_TOPIC } from "../lib/mqtt.server.mjs";
 import { getCpuUsage, getMemUsage } from "../lib/os.server.mjs";
+import { getStore } from "../lib/store.server.mjs";
 
 import { fetchUmamiData } from "../services/umami.server.mjs";
 
@@ -10,6 +11,13 @@ import { fetchUmamiData } from "../services/umami.server.mjs";
 export async function systemUsageListenter() {
   const sendStatusBarUpdate = async () => {
     const client = await getMQTTClient();
+    const store = await getStore();
+
+    const isScreenOn = store.get("screen");
+    if (!isScreenOn) {
+      console.log("Screen is off, skipped: statusbar update");
+      return;
+    }
 
     const cpuUsage = await getCpuUsage();
     const memUsage = getMemUsage();

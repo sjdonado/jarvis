@@ -15,15 +15,14 @@ import { getRandomQuote } from "../services/zenquotes.server.mjs";
  * @param {string} message - The text message to display on the BMP image.
  */
 export async function sendMessage(message) {
+  const client = await getMQTTClient();
   const store = await getStore();
-  const isScreenOn = store.get("screen");
 
+  const isScreenOn = store.get("screen");
   if (!isScreenOn) {
     console.log("Screen is off, skipped: ", message);
     return;
   }
-
-  const client = await getMQTTClient();
 
   const fontPath = path.join("./fonts/PixelOperator.ttf");
   registerFont(fontPath, { family: "PixelOperator" });
