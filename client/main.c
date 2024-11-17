@@ -39,6 +39,7 @@ void turn_off_screen() {
     free(BlackImage);
     BlackImage = NULL;
     EPD_2in13_V4_Clear();
+    DEV_Delay_ms(100);
     EPD_2in13_V4_Sleep();
     printf("Screen turned off\n");
   }
