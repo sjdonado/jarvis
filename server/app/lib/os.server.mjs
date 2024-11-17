@@ -1,4 +1,4 @@
-import fs from 'fs';
+import fs from "fs";
 
 export function getMemUsage() {
   try {
@@ -18,13 +18,23 @@ export function getMemUsage() {
 
     if (totalMemory && freeMemory) {
       const usedMemory = totalMemory - freeMemory;
-      return (usedMemory / 1024).toFixed(2); // Returns in MB
+
+      // Convert to MB
+      const usedMemoryMB = usedMemory / 1024;
+
+      // Return as MB or GB
+      if (usedMemoryMB >= 1024) {
+        const usedMemoryGB = (usedMemoryMB / 1024).toFixed(2);
+        return `${usedMemoryGB}GB`;
+      } else {
+        return `${usedMemoryMB.toFixed(2)}MB`;
+      }
     } else {
       throw new Error("Failed to retrieve memory information");
     }
   } catch (error) {
     console.error("Error reading /proc/meminfo:", error);
-    return 0;
+    return "0MB";
   }
 }
 
@@ -51,7 +61,7 @@ export function getCpuUsage() {
       return cpuStats;
     } catch (error) {
       console.error("Error reading /proc/stat:", error);
-      return 0;
+      return null;
     }
   };
 
@@ -59,14 +69,14 @@ export function getCpuUsage() {
     const startStats = parseCpuInfo();
 
     if (!startStats) {
-      return resolve(0);
+      return resolve("0%");
     }
 
     setTimeout(() => {
       const endStats = parseCpuInfo();
 
       if (!endStats) {
-        return resolve(0);
+        return resolve("0%");
       }
 
       const coreUsages = startStats.map((start, index) => {
@@ -77,11 +87,9 @@ export function getCpuUsage() {
         return 100 * (1 - idleDelta / totalDelta);
       });
 
-      const avgCpuUsage = (
-        coreUsages.reduce((sum, usage) => sum + usage, 0) / coreUsages.length
-      ).toFixed(2);
+      const avgCpuUsage = (coreUsages.reduce((sum, usage) => sum + usage, 0) / coreUsages.length).toFixed(2);
 
-      resolve(avgCpuUsage);
+      resolve(`${avgCpuUsage}%`);
     }, 1000);
   });
 }
