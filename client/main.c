@@ -36,11 +36,15 @@ volatile sig_atomic_t exit_requested = 0; // Flag for exiting the main loop
 
 void turn_off_screen() {
   if (BlackImage) {
+    Paint_NewImage(BlackImage, SCREEN_WIDTH, SCREEN_HEIGHT, ROTATE_90, WHITE);
+    Paint_SelectImage(BlackImage);
+    Paint_Clear(WHITE);
+
+    EPD_2in13_V4_Clear();
+    EPD_2in13_V4_Sleep();
+
     free(BlackImage);
     BlackImage = NULL;
-    EPD_2in13_V4_Clear();
-    DEV_Delay_ms(100);
-    EPD_2in13_V4_Sleep();
     printf("Screen turned off\n");
   }
 }
