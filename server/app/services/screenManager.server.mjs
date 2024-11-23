@@ -59,7 +59,7 @@ const stateMachine = createMachine(
       updateScheduledIntervalContext: assign({
         scheduledInterval: ({ context, event }) => ({
           value: event.value ?? context.scheduledInterval.value,
-          updatedAt: new Date().toISOString(),
+          updatedAt: Date.now(),
         }),
       }),
       sendScreenOnSignal: async () => {

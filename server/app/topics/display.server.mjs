@@ -55,15 +55,13 @@ export async function scheduleRandomQuotes(intervalMinutes) {
     const quote = await getRandomQuote();
 
     await sendMessage(quote);
-    screenManager.send({ type: "UPDATE_SCHEDULED_INTERVAL" });
+    screenManager.send({ type: "UPDATE_SCHEDULED_INTERVAL", value: intervalMinutes });
   };
 
   const intervalMs = intervalMinutes * 60 * 1000;
 
   await sendQuote();
   scheduleIntervalId = setInterval(sendQuote, intervalMs);
-
-  screenManager.send({ type: "UPDATE_SCHEDULED_INTERVAL", value: intervalMinutes });
 }
 
 /**

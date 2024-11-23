@@ -25,25 +25,35 @@ export const loader: LoaderFunction = async ({ request }) => {
 
 export default function Index() {
   const data = useLoaderData<typeof loader>();
-
   const revalidator = useRevalidator();
 
   useEffect(() => {
-    const eventSource = new EventSource("/api/sse");
+    let eventSource: EventSource | null = null;
+    const connect = () => {
+      eventSource = new EventSource("/api/sse");
 
-    eventSource.onmessage = (event) => {
-      if (event.type === "invalidate") {
-        revalidator.revalidate();
-      }
+      eventSource.onmessage = (event) => {
+        if (event.type === "invalidate") {
+          revalidator.revalidate();
+        }
+      };
+
+      eventSource.onerror = () => {
+        console.error("SSE connection lost. Attempting to reconnect...");
+        eventSource?.close();
+        eventSource = null;
+
+        // Reconnect after 5 seconds
+        setTimeout(() => {
+          connect();
+        }, 5000);
+      };
     };
 
-    eventSource.onerror = (error) => {
-      console.error("SSE connection error:", error);
-      eventSource.close();
-    };
+    connect();
 
     return () => {
-      eventSource.close();
+      eventSource?.close();
     };
   }, [revalidator]);
 
