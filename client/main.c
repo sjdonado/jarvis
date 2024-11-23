@@ -44,17 +44,14 @@ void turn_off_screen() {
         screen_on = false;
 
         const int delay_seconds = 2;
-        printf("Screen will turn off after %d seconds.\n", delay_seconds);
+        printf("Screen will suspend after %d seconds.\n", delay_seconds);
         sleep(delay_seconds);
 
+        Paint_SelectImage(BlackImage);
         Paint_Clear(WHITE);
-        EPD_2in13_V4_Display_Partial(BlackImage);
-        /* EPD_2in13_V4_Clear(); */
-        EPD_2in13_V4_Sleep();
+        EPD_2in13_V4_Display_Base(BlackImage);
 
-        free(BlackImage);
-        BlackImage = NULL;
-        printf("Screen turned off\n");
+        printf("Screen suspended\n");
     }
 }
 
@@ -65,8 +62,17 @@ void cleanup_and_exit(int exit_code) {
         MQTTClient_destroy(&client);
     }
 
+    // shutdown screen
     if (BlackImage) {
-        turn_off_screen();
+        Paint_SelectImage(BlackImage);
+        Paint_Clear(WHITE);
+        EPD_2in13_V4_Display_Base(BlackImage);
+
+        EPD_2in13_V4_Sleep();
+        free(BlackImage);
+        BlackImage = NULL;
+
+        printf("Screen turned off\n");
     }
 
     exit(exit_code);
@@ -83,8 +89,8 @@ void turn_on_screen() {
             EPD_2in13_V4_HEIGHT;
 
         if ((BlackImage = (UBYTE *)malloc(Imagesize)) == NULL) {
-          Debug("Failed to apply for black memory...\r\n");
-          cleanup_and_exit(-1);
+            Debug("Failed to allocate memory for BlackImage...\r\n");
+            cleanup_and_exit(-1);
         }
 
         Paint_NewImage(BlackImage, SCREEN_WIDTH, SCREEN_HEIGHT, ROTATE_90, WHITE);
@@ -98,11 +104,7 @@ void turn_on_screen() {
 
 void update_statusbar(const char *status_text) {
     if (screen_on == false || !BlackImage) {
-        if (BlackImage != NULL) {
-            printf("Screen is turning off, skipping status bar update.\n");
-        } else {
-            printf("Screen is off, skipping status bar update.\n");
-        }
+        printf("Screen is suspended, skipping status bar update.\n");
         return;
     }
 
@@ -120,11 +122,7 @@ void update_statusbar(const char *status_text) {
 
 void update_display_area(const char *bmp_file) {
     if (screen_on == false || !BlackImage) {
-        if (BlackImage != NULL) {
-            printf("Screen is turning off, skipping display area update.\n");
-        } else {
-            printf("Screen is off, skipping display area update.\n");
-        }
+        printf("Screen is suspended, skipping display area update.\n");
         return;
     }
 
@@ -160,17 +158,6 @@ int GUI_BMPfile_CheckDimensions(const char *bmp_file, int expected_width, int ex
 }
 
 int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *message) {
-    if (screen_on == false) {
-        if (BlackImage != NULL) {
-            printf("Screen is turning off, ignoring message.\n");
-        } else {
-            printf("Screen is off, ignoring message.\n");
-        }
-        MQTTClient_freeMessage(&message);
-        MQTTClient_free(topicName);
-        return 1;
-    }
-
     time_t now = time(NULL);
     struct tm t;
     localtime_r(&now, &t);
@@ -213,8 +200,9 @@ int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *m
         snprintf(system_text, sizeof(system_text), "%.*s", message->payloadlen, (char *)message->payload);
 
         if (strstr(system_text, "screen:on")) {
-            if (screen_on == false && BlackImage == NULL) {
-                turn_on_screen();
+            if (screen_on == false) {
+                screen_on = true;
+                printf("Screen resumed\n");
             }
         } else if (strstr(system_text, "screen:off")) {
             if (screen_on == true) {
