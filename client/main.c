@@ -29,20 +29,18 @@
 #define SCREEN_HEIGHT EPD_2in13_V4_HEIGHT // 250
 #define STATUSBAR_HEIGHT 20
 
+#define BITS_PER_BYTE 8
+#define BYTE_ALIGNMENT (BITS_PER_BYTE - 1)
+
 UBYTE *BlackImage = NULL;
-MQTTClient client;
 MQTTClient client = NULL;
 volatile sig_atomic_t exit_requested = 0; // Flag for exiting the main loop
 
 void turn_off_screen() {
   if (BlackImage) {
-    Paint_NewImage(BlackImage, SCREEN_WIDTH, SCREEN_HEIGHT, ROTATE_90, WHITE);
-    Paint_SelectImage(BlackImage);
     Paint_Clear(WHITE);
-
-    EPD_2in13_V4_Clear();
+    EPD_2in13_V4_Display_Partial(BlackImage);
     EPD_2in13_V4_Sleep();
-
     free(BlackImage);
     BlackImage = NULL;
     printf("Screen turned off\n");
@@ -52,7 +50,6 @@ void turn_off_screen() {
 void cleanup_and_exit(int exit_code) {
   if (client) {
     printf("Disconnecting from MQTT server...\n");
-
     MQTTClient_disconnect(client, 10000);
     MQTTClient_destroy(&client);
   }
@@ -66,23 +63,27 @@ void cleanup_and_exit(int exit_code) {
 
 void turn_on_screen() {
   if (!BlackImage) {
-    EPD_2in13_V4_Init();
+    EPD_2in13_V4_Init_Fast();
     EPD_2in13_V4_Clear();
 
-    UWORD Imagesize =
-        ((EPD_2in13_V4_WIDTH % 8 == 0) ? (EPD_2in13_V4_WIDTH / 8)
-                                       : (EPD_2in13_V4_WIDTH / 8 + 1)) *
-        EPD_2in13_V4_HEIGHT;
+    UWORD width_in_pixels = SCREEN_HEIGHT;
+    UWORD height_in_pixels = SCREEN_WIDTH;
 
-    if ((BlackImage = (UBYTE *)malloc(Imagesize)) == NULL) {
-      Debug("Failed to apply for black memory...\r\n");
+    // Calculate image buffer size
+    UWORD width_in_bytes = (width_in_pixels + BYTE_ALIGNMENT) / BITS_PER_BYTE;
+    UWORD Imagesize = width_in_bytes * height_in_pixels;
+
+    BlackImage = (UBYTE *)malloc(Imagesize);
+    if (BlackImage == NULL) {
+      Debug("Failed to allocate memory for BlackImage...\r\n");
       cleanup_and_exit(-1);
     }
 
-    Paint_NewImage(BlackImage, SCREEN_WIDTH, SCREEN_HEIGHT, ROTATE_90, WHITE);
+    Paint_NewImage(BlackImage, SCREEN_HEIGHT, SCREEN_WIDTH, ROTATE_90, WHITE);
     Paint_SelectImage(BlackImage);
     Paint_Clear(WHITE);
 
+    EPD_2in13_V4_Display_Base(BlackImage);
     printf("Screen turned on\n");
   }
 }
@@ -117,9 +118,7 @@ void update_display_area(const char *bmp_file) {
     return;
   }
 
-  /* printf("Updating display area\n"); */
   int display_start_y = STATUSBAR_HEIGHT;
-
   Paint_ClearWindows(0, display_start_y, SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1,
                      WHITE);
 
