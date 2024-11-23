@@ -4,30 +4,31 @@ import { LoaderFunction } from "@remix-run/node";
 
 import { HEIGHT, WIDTH } from "~/config/constants.mjs";
 import { isAuthenticated } from "~/sessions.server";
-import { getStore } from "~/lib/store.server.mjs";
 
 import ScheduleRandomQuotes from "~/sections/ScheduleRamdonQuotes";
 import ScreenControl from "~/sections/ScreenControl";
 import SendMessage from "~/sections/SendMessage";
 
+import { screenManager } from "~/services/screenManager.server.mjs";
+
 export const loader: LoaderFunction = async ({ request }) => {
   await isAuthenticated(request);
 
-  const store = await getStore();
+  const state = screenManager.getSnapshot();
 
   return {
-    scheduledInterval: {
-      value: store.get("scheduledInterval"),
-      updatedAt: store.get("scheduledIntervalUpdatedAt"),
-    },
-    display: store.get("display"),
-    screen: store.get("screen"),
+    screen: state.matches('active'),
+    display: state.context.display.base64,
+    scheduledInterval: state.context.scheduledInterval,
   };
 };
 
 export default function Index() {
   const initialData = useLoaderData<typeof loader>();
 
+  // TODO: invalidate instead of getting data from the sse
+  // TODO: investigate why the canvas does not work locally (try npm clean, should be some dependency broken)
+  // TODO: remove console logs
   const [scheduledInterval, setScheduledInterval] = useState(initialData.scheduledInterval);
   const [display, setDisplay] = useState(initialData.display);
   const [screen, setScreen] = useState(initialData.screen);
@@ -60,10 +61,16 @@ export default function Index() {
       </header>
       <div className="flex max-w-5xl flex-col gap-6">
         <div className="flex justify-center">
-          <img src={display} alt={display ? "Message Preview" : ""} className="rounded border shadow-md" width={WIDTH} height={HEIGHT} />
+          <img
+            src={screen ? display : ""}
+            alt={display ? "Message Preview" : ""}
+            className="rounded border shadow-md"
+            width={WIDTH}
+            height={HEIGHT}
+          />
         </div>
         <ScreenControl screen={screen} />
-        <SendMessage screen={screen}/>
+        <SendMessage screen={screen} />
         <ScheduleRandomQuotes screen={screen} scheduledInterval={scheduledInterval} />
       </div>
       <Link to="/logout" className="text-center text-sm text-red-500 underline">

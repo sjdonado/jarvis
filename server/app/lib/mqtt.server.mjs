@@ -6,17 +6,29 @@ export const STATUSBAR_TOPIC = "statusbar";
 export const DISPLAY_TOPIC = "display";
 export const SYSTEM_TOPIC = "system";
 
-let _client;
+let _client = null;
+let connectingPromise = null;
 
 /**
  * Retrieves the MQTT client instance, initializing a new connection if it doesn't exist.
- * @returns {Promise<mqtt.MqttClient>} A promise that resolves to the connected MQTT client instance.
+ * @returns {Promise<mqtt.AsyncMqttClient>} A promise that resolves to the connected MQTT client instance.
  */
 export const getMQTTClient = async () => {
   if (_client) return _client;
 
-  _client = await mqtt.connectAsync(ENV.mqtt.address);
-  console.log("Connected to MQTT broker", ENV.mqtt.address);
+  if (connectingPromise) {
+    // Return the existing promise if a connection is already in progress
+    return connectingPromise;
+  }
 
-  return _client;
+  try {
+    connectingPromise = mqtt.connectAsync(ENV.mqtt.address);
+    _client = await connectingPromise;
+    console.log("Connected to MQTT broker", ENV.mqtt.address);
+    connectingPromise = null;
+    return _client;
+  } catch (err) {
+    connectingPromise = null;
+    throw err;
+  }
 };

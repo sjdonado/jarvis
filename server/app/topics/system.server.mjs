@@ -1,4 +1,4 @@
-import { getMQTTClient, SYSTEM_TOPIC } from "../lib/mqtt.server.mjs";
+import { screenManager } from "../services/screenManager.server.mjs";
 
 /**
  * @typedef {("screen" | "sleep")} CommandKey
@@ -17,13 +17,11 @@ import { getMQTTClient, SYSTEM_TOPIC } from "../lib/mqtt.server.mjs";
  * @returns {Promise<void>} Resolves when the message is published.
  */
 export async function sendScreenSignal(key, value) {
-  const client = await getMQTTClient();
-
-  const message = `${key}:${value}`;
-
-  client.publish(SYSTEM_TOPIC, message, { qos: 2, retain: false }, (err) => {
-    if (err) {
-      console.error("Failed to publish system message:", err);
+  if (key === "screen") {
+    if (value === "on") {
+      screenManager.send({ type: "SCREEN_ON" });
+    } else if (value === "off") {
+      screenManager.send({ type: "SCREEN_OFF" });
     }
-  });
+  }
 }

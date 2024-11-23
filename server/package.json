@@ -15,7 +15,7 @@
     "@remix-run/node": "^2.13.1",
     "@remix-run/react": "^2.13.1",
     "@remix-run/serve": "^2.13.1",
-    "canvas": "^2.11.2",
+    "canvas": "~2.11.2",
     "clsx": "^2.1.1",
     "cross-env": "^7.0.3",
     "express": "^4.21.1",
@@ -23,7 +23,8 @@
     "mqtt": "^5.10.1",
     "node-fetch": "^3.3.2",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "xstate": "^5.19.0"
   },
   "devDependencies": {
     "@remix-run/dev": "^2.13.1",
