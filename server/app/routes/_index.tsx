@@ -1,5 +1,5 @@
-import { useLoaderData, Link } from "@remix-run/react";
-import { useState, useEffect } from "react";
+import { useLoaderData, Link, useRevalidator } from "@remix-run/react";
+import { useEffect } from "react";
 import { LoaderFunction } from "@remix-run/node";
 
 import { HEIGHT, SCREEN_OFF_BASE64, WIDTH } from "~/config/constants.mjs";
@@ -24,24 +24,17 @@ export const loader: LoaderFunction = async ({ request }) => {
 };
 
 export default function Index() {
-  const initialData = useLoaderData<typeof loader>();
+  const data = useLoaderData<typeof loader>();
 
-  // TODO: invalidate instead of getting data from the sse
-  // TODO: investigate why the canvas does not work locally (try npm clean, should be some dependency broken)
-  // TODO: remove console logs
-  const [scheduledInterval, setScheduledInterval] = useState(initialData.scheduledInterval);
-  const [display, setDisplay] = useState(initialData.display);
-  const [screen, setScreen] = useState(initialData.screen);
+  const revalidator = useRevalidator();
 
   useEffect(() => {
     const eventSource = new EventSource("/api/sse");
 
     eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-
-      setScheduledInterval(data.scheduledInterval);
-      setDisplay(data.display);
-      setScreen(data.screen);
+      if (event.type === "invalidate") {
+        revalidator.revalidate();
+      }
     };
 
     eventSource.onerror = (error) => {
@@ -52,7 +45,9 @@ export default function Index() {
     return () => {
       eventSource.close();
     };
-  }, []);
+  }, [revalidator]);
+
+  const { screen, display, scheduledInterval } = data;
 
   return (
     <div className="flex h-screen flex-col items-center justify-center gap-12">

@@ -1,7 +1,5 @@
 import { LoaderFunction } from "@remix-run/node";
-
 import { isAuthenticated } from "~/sessions.server";
-
 import { screenManager } from "~/services/screenManager.server.mjs";
 
 export const loader: LoaderFunction = async ({ request }) => {
@@ -11,16 +9,10 @@ export const loader: LoaderFunction = async ({ request }) => {
 
   const stream = new ReadableStream({
     start(controller) {
-      subscription = screenManager.subscribe((state) => {
-        const data = JSON.stringify({
-          screen: state.matches("active"),
-          display: state.context.display.base64,
-          scheduledInterval: state.context.scheduledInterval,
-        });
-        controller.enqueue(`data: ${data}\n\n`);
+      subscription = screenManager.subscribe(() => {
+        controller.enqueue(`event: invalidate\ndata: {}\n\n`);
       });
 
-      // Reconnect if the connection drops
       controller.enqueue(`retry: 10000\n\n`);
 
       controller.close = () => {
