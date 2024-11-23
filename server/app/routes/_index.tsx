@@ -2,7 +2,7 @@ import { useLoaderData, Link } from "@remix-run/react";
 import { useState, useEffect } from "react";
 import { LoaderFunction } from "@remix-run/node";
 
-import { HEIGHT, WIDTH } from "~/config/constants.mjs";
+import { HEIGHT, SCREEN_OFF_BASE64, WIDTH } from "~/config/constants.mjs";
 import { isAuthenticated } from "~/sessions.server";
 
 import ScheduleRandomQuotes from "~/sections/ScheduleRamdonQuotes";
@@ -17,7 +17,7 @@ export const loader: LoaderFunction = async ({ request }) => {
   const state = screenManager.getSnapshot();
 
   return {
-    screen: state.matches('active'),
+    screen: state.matches("active"),
     display: state.context.display.base64,
     scheduledInterval: state.context.scheduledInterval,
   };
@@ -62,7 +62,7 @@ export default function Index() {
       <div className="flex max-w-5xl flex-col gap-6">
         <div className="flex justify-center">
           <img
-            src={screen ? display : ""}
+            src={screen ? display : SCREEN_OFF_BASE64}
             alt={display ? "Message Preview" : ""}
             className="rounded border shadow-md"
             width={WIDTH}
