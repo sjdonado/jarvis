@@ -19,7 +19,7 @@ export const loader: LoaderFunction = async ({ request }) => {
   return {
     screen: state.matches("active"),
     display: state.context.display.base64,
-    scheduledInterval: state.context.scheduledInterval,
+    randomQuotesInterval: state.context.randomQuotesInterval,
   };
 };
 
@@ -57,7 +57,7 @@ export default function Index() {
     };
   }, [revalidator]);
 
-  const { screen, display, scheduledInterval } = data;
+  const { screen, display, randomQuotesInterval } = data;
 
   return (
     <div className="flex h-screen flex-col items-center justify-center gap-12">
@@ -76,7 +76,7 @@ export default function Index() {
         </div>
         <ScreenControl screen={screen} />
         <SendMessage screen={screen} />
-        <ScheduleRandomQuotes screen={screen} scheduledInterval={scheduledInterval} />
+        <ScheduleRandomQuotes screen={screen} randomQuotesInterval={randomQuotesInterval} />
       </div>
       <Link to="/logout" className="text-center text-sm text-red-500 underline">
         Logout

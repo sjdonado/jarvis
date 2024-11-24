@@ -42,32 +42,37 @@ export async function sendMessage(message) {
 let scheduleIntervalId = null;
 
 /**
- * Schedules the automatic sending of random quotes at a specified interval.
+ * Continuously checks and sends random quotes if the scheduled interval has passed.
  * @param {number} intervalMinutes - The interval in minutes at which to send quotes.
- * @returns {Promise<void>}
+ * @returns {void}
  */
-export async function scheduleRandomQuotes(intervalMinutes) {
+export function scheduleRandomQuotes() {
   if (scheduleIntervalId) {
     clearInterval(scheduleIntervalId);
   }
 
-  const sendQuote = async () => {
-    const quote = await getRandomQuote();
+  const checkAndSendQuote = async () => {
+    const state = screenManager.getSnapshot();
+    const { value, updatedAt } = state.context.randomQuotesInterval;
 
-    await sendMessage(quote);
-    screenManager.send({ type: "UPDATE_SCHEDULED_INTERVAL", value: intervalMinutes });
+    if (!updatedAt || Date.now() - updatedAt >= value * 60 * 1000) {
+      const quote = await getRandomQuote();
+
+      await sendMessage(quote);
+      screenManager.send({ type: "UPDATE_RANDOM_QUOTES_INTERVAL_TIMESTAMP" });
+    }
   };
 
-  const intervalMs = intervalMinutes * 60 * 1000;
+  const checkIntervalMs = 60 * 1000; // Check every minute
+  scheduleIntervalId = setInterval(checkAndSendQuote, checkIntervalMs);
 
-  await sendQuote();
-  scheduleIntervalId = setInterval(sendQuote, intervalMs);
+  checkAndSendQuote();
 }
 
 /**
- * Cancels the scheduled sending of random quotes.
+ * Cancels the scheduled checking and sending of random quotes.
  */
-export function cancelScheduledQuotes() {
+export function cancelScheduledRandomQuotes() {
   if (scheduleIntervalId) {
     clearInterval(scheduleIntervalId);
     scheduleIntervalId = null;

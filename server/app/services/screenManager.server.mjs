@@ -12,8 +12,8 @@ const stateMachine = createMachine(
         buffer: null,
         base64: null,
       },
-      scheduledInterval: {
-        value: '',
+      randomQuotesInterval: {
+        value: "",
         updatedAt: null,
       },
     },
@@ -22,7 +22,7 @@ const stateMachine = createMachine(
         on: {
           SCREEN_ON: {
             target: "active",
-            actions: ["sendScreenOnSignal", "publishDisplay"],
+            actions: ["sendScreenOnSignal", "publishDisplay", "updateRandomQuotesIntervalTimestamp"],
           },
         },
       },
@@ -38,8 +38,11 @@ const stateMachine = createMachine(
           UPDATE_DISPLAY: {
             actions: ["updateDisplayContext", "publishDisplay"],
           },
-          UPDATE_SCHEDULED_INTERVAL: {
-            actions: ["updateScheduledIntervalContext"],
+          UPDATE_RANDOM_QUOTES_INTERVAL: {
+            actions: ["updateRandomQuotesIntervalContext"],
+          },
+          UPDATE_RANDOM_QUOTES_INTERVAL_TIMESTAMP: {
+            actions: ["updateRandomQuotesIntervalTimestamp"],
           },
         },
       },
@@ -56,9 +59,15 @@ const stateMachine = createMachine(
           base64: `data:image/bmp;base64,${event.value.toString("base64")}`,
         }),
       }),
-      updateScheduledIntervalContext: assign({
-        scheduledInterval: ({ context, event }) => ({
-          value: event.value ?? context.scheduledInterval.value,
+      updateRandomQuotesIntervalContext: assign({
+        randomQuotesInterval: ({ event }) => ({
+          value: event.value,
+          updatedAt: Date.now(),
+        }),
+      }),
+      updateRandomQuotesIntervalTimestamp: assign({
+        randomQuotesInterval: ({ context }) => ({
+          value: context.randomQuotesInterval.value,
           updatedAt: Date.now(),
         }),
       }),

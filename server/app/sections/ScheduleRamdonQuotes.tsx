@@ -4,24 +4,24 @@ import clsx from "clsx";
 
 export default function ScheduleRandomQuotes({
   screen,
-  scheduledInterval,
+  randomQuotesInterval,
 }: {
   screen: boolean;
-  scheduledInterval: {
+  randomQuotesInterval: {
     value: number;
     updatedAt: number;
   };
 }) {
   const fetcher = useFetcher();
-  const [scheduleInterval, setScheduleInterval] = useState(scheduledInterval.value);
+  const [scheduledInterval, setScheduledInterval] = useState(randomQuotesInterval.value);
   const [nextScheduledTime, setNextScheduledTime] = useState<string | null>(null);
   const [countdown, setCountdown] = useState("");
 
   useEffect(() => {
-    if (!scheduleInterval) return;
+    if (!scheduledInterval) return;
 
-    const intervalInMs = scheduleInterval * 60 * 1000;
-    const nextTime = new Date(scheduledInterval.updatedAt + intervalInMs);
+    const intervalInMs = scheduledInterval * 60 * 1000;
+    const nextTime = new Date(randomQuotesInterval.updatedAt + intervalInMs);
 
     if (isNaN(nextTime.getTime())) {
       setNextScheduledTime(null);
@@ -46,22 +46,22 @@ export default function ScheduleRandomQuotes({
     const intervalId = setInterval(updateCountdown, 1000);
 
     return () => clearInterval(intervalId);
-  }, [scheduleInterval, scheduledInterval.updatedAt]);
+  }, [scheduledInterval, randomQuotesInterval.updatedAt]);
 
   return (
     <section>
       <h2 className="text-center text-lg font-semibold">Schedule Random Quotes</h2>
       <fetcher.Form method="post" action="/api/schedule-random-quotes" className="mt-2 flex items-center gap-2">
-        <label htmlFor="scheduleInterval" className="sr-only">
+        <label htmlFor="scheduledInterval" className="sr-only">
           Schedule Interval (minutes)
         </label>
         <input
           type="number"
-          id="scheduleInterval"
-          name="scheduleInterval"
+          id="scheduledInterval"
+          name="scheduledInterval"
           placeholder="Interval in minutes"
-          value={scheduleInterval}
-          onChange={(e) => setScheduleInterval(e.target.valueAsNumber || 0)}
+          value={scheduledInterval}
+          onChange={(e) => setScheduledInterval(e.target.valueAsNumber || 0)}
           className="w-full rounded border border-gray-300 p-2 text-gray-700"
         />
         <button

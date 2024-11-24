@@ -2,8 +2,8 @@ import type { ActionFunction, LoaderFunction } from "@remix-run/node";
 import { Form, useActionData, redirect } from "@remix-run/react";
 import { useState } from "react";
 
-import { getSession, commitSession } from "../sessions.server";
-import { ENV } from "../config/env.server.mjs";
+import { ENV } from "~/config/env.server.mjs";
+import { getSession, commitSession } from "~/sessions.server";
 
 export const loader: LoaderFunction = async ({ request }) => {
   const session = await getSession(request.headers.get("Cookie"));
@@ -40,10 +40,10 @@ export default function Login() {
 
   return (
     <div className="flex h-screen items-center justify-center">
-      <div className="w-full max-w-md p-8 space-y-6">
-        <h1 className="text-2xl font-bold text-center">Login</h1>
+      <div className="w-full max-w-md space-y-6 p-8">
+        <h1 className="text-center text-2xl font-bold">Login</h1>
         <Form method="post" className="mt-8 space-y-6">
-          <div className="rounded-md shadow-sm -space-y-px">
+          <div className="-space-y-px rounded-md shadow-sm">
             <input
               name="apiKey"
               type="password"
@@ -51,14 +51,14 @@ export default function Login() {
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder="Enter API Key"
-              className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+              className="relative block w-full appearance-none rounded-none rounded-t-md border border-gray-300 px-3 py-2 text-gray-900 placeholder:text-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
             />
           </div>
-          {actionData?.error && <p className="text-red-500 text-sm">{actionData.error}</p>}
+          {actionData?.error && <p className="text-sm text-red-500">{actionData.error}</p>}
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none"
+              className="group relative flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none"
             >
               Login
             </button>
