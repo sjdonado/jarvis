@@ -1,6 +1,7 @@
 import { createMachine, assign, createActor } from "xstate";
 
 import { getMQTTClient, SYSTEM_TOPIC, STATUSBAR_TOPIC, DISPLAY_TOPIC } from "../lib/mqtt.server.mjs";
+import { scheduleRandomQuotes, cancelScheduledRandomQuotes } from "../topics/display.server.mjs";
 
 const stateMachine = createMachine(
   {
@@ -67,7 +68,7 @@ const stateMachine = createMachine(
       }),
       updateRandomQuotesIntervalTimestamp: assign({
         randomQuotesInterval: ({ context }) => ({
-          value: context.randomQuotesInterval.value,
+          ...context.randomQuotesInterval,
           updatedAt: Date.now(),
         }),
       }),
@@ -79,6 +80,8 @@ const stateMachine = createMachine(
             console.error("Failed to publish system message:", err);
           }
         });
+
+        scheduleRandomQuotes();
       },
       sendScreenOffSignal: async () => {
         const client = await getMQTTClient();
@@ -88,6 +91,8 @@ const stateMachine = createMachine(
             console.error("Failed to publish system message:", err);
           }
         });
+
+        cancelScheduledRandomQuotes();
       },
       publishStatusbar: async ({ context }) => {
         const client = await getMQTTClient();
