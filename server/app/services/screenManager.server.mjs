@@ -63,12 +63,12 @@ const stateMachine = createMachine(
       updateRandomQuotesIntervalContext: assign({
         randomQuotesInterval: ({ event }) => ({
           value: event.value,
-          updatedAt: Date.now(),
+          updatedAt: null,
         }),
       }),
       updateRandomQuotesIntervalTimestamp: assign({
         randomQuotesInterval: ({ context }) => ({
-          ...context.randomQuotesInterval,
+          value: context.randomQuotesInterval.value,
           updatedAt: Date.now(),
         }),
       }),

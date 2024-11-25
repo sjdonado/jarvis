@@ -39,7 +39,7 @@ export async function sendMessage(message) {
   }
 }
 
-let scheduleIntervalId = null;
+let scheduledIntervalId = null;
 
 /**
  * Continuously checks and sends random quotes if the scheduled interval has passed.
@@ -47,13 +47,17 @@ let scheduleIntervalId = null;
  * @returns {void}
  */
 export function scheduleRandomQuotes() {
-  if (scheduleIntervalId) {
-    clearInterval(scheduleIntervalId);
+  if (scheduledIntervalId) {
+    clearInterval(scheduledIntervalId);
   }
 
   const checkAndSendQuote = async () => {
     const state = screenManager.getSnapshot();
     const { value, updatedAt } = state.context.randomQuotesInterval;
+
+    if (!state.matches("active") || !value) {
+      return;
+    }
 
     if (!updatedAt || Date.now() - updatedAt >= value * 60 * 1000) {
       const quote = await getRandomQuote();
@@ -64,7 +68,7 @@ export function scheduleRandomQuotes() {
   };
 
   const checkIntervalMs = 60 * 1000; // Check every minute
-  scheduleIntervalId = setInterval(checkAndSendQuote, checkIntervalMs);
+  scheduledIntervalId = setInterval(checkAndSendQuote, checkIntervalMs);
 
   checkAndSendQuote();
 }
@@ -73,9 +77,9 @@ export function scheduleRandomQuotes() {
  * Cancels the scheduled checking and sending of random quotes.
  */
 export function cancelScheduledRandomQuotes() {
-  if (scheduleIntervalId) {
-    clearInterval(scheduleIntervalId);
-    scheduleIntervalId = null;
+  if (scheduledIntervalId) {
+    clearInterval(scheduledIntervalId);
+    scheduledIntervalId = null;
     console.log("Scheduled quotes have been canceled.");
   }
 }
