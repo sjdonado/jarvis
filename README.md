@@ -15,9 +15,10 @@ A CLI-based e-paper display controller for Raspberry Pi with 2.13" e-Paper displ
 
 - **Screen Control**: Turn the display on/off
 - **Display Modes**: Light and dark mode support
-- **Message Layouts**: Display messages in top, center, or bottom positions
+- **Message Layouts**: Display messages in top or center positions
 - **Persistence**: Latest message is saved to disk when screen is off
 - **Direct CLI Access**: Perfect for SSH connections and automation
+- **System Monitoring**: Scripts for sending system stats from remote machines
 
 ## Setup
 
@@ -66,46 +67,33 @@ sudo make clean && sudo make
 ### Basic Commands
 
 ```sh
-# Turn screen on
-sudo ./jarvis --on
+./jarvis --on
+./jarvis --off
 
-# Turn screen off
-sudo ./jarvis --off
+./jarvis --light
+./jarvis --dark
 
-# Switch to light mode
-sudo ./jarvis --light
-
-# Switch to dark mode
-sudo ./jarvis --dark
-
-# Display help
-sudo ./jarvis --help
+./jarvis --help
 ```
 
 ### Display Messages
 
+```
+y=0-2:    Top margin (2px)
+y=2-22:   Navbar area (20px)
+y=22-119: Main content (97px)
+y=119-122: Bottom margin (3px)
+```
+
 ```sh
-# Display message in center (default)
-sudo ./jarvis --message "Hello World"
-
 # Display message at the top
-sudo ./jarvis --message "Status Update" --layout top
+sudo ./jarvis --message "Status Update" --layout topbar
 
-# Display message at the bottom
-sudo ./jarvis --message "System Ready" --layout bottom
+# Display message in center (default)
+sudo ./jarvis --message "Main message here" --layout main
 
 # Display message in dark mode
 sudo ./jarvis --dark --message "Dark mode message"
-```
-
-### Combined Commands
-
-```sh
-# Turn on screen and display message
-sudo ./jarvis --on --message "System Started" --layout top
-
-# Switch to dark mode and display centered message
-sudo ./jarvis --dark --message "Welcome to Jarvis"
 ```
 
 ## Persistence
@@ -114,10 +102,15 @@ When the screen is off, the latest message is automatically saved to `/tmp/jarvi
 
 ```sh
 # This message will be saved when screen is off
-sudo ./jarvis --message "Latest message" --layout top
+./jarvis --message "Latest message" --layout topbar
 
 # Turn screen on - will display the stored message
-sudo ./jarvis --on
+./jarvis --on
+```
+
+## Automation
+```sh
+0 9 * * * /path/to/jarvis/scripts/countdown_topbar.sh
 ```
 
 ## State Management
