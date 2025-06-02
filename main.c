@@ -194,8 +194,9 @@ void display_all_messages_with_refresh_type(bool force_full_refresh) {
   // Clear screen
   Paint_Clear(device_state.mode == MODE_LIGHT ? WHITE : BLACK);
 
-  // Available fonts in order of preference (largest to smallest)
-  sFONT *fonts[] = {&Font24, &Font20, &Font16, &Font12, &Font8};
+  // Available fonts in order of preference:
+  // {&Font24, &Font20, &Font16, &Font12, &Font8};
+  sFONT *fonts[] = {&Font20, &Font16, &Font12, &Font8};
   int num_fonts = sizeof(fonts) / sizeof(fonts[0]);
 
   // Draw each active message
@@ -240,7 +241,7 @@ void display_all_messages_with_refresh_type(bool force_full_refresh) {
       sFONT *font = fonts[f];
       int char_width = font->Width;
       int char_height = font->Height;
-      int available_width = SCREEN_HEIGHT - 20; // Leave margin
+      int available_width = SCREEN_HEIGHT; // Use full screen width without margin
       int chars_per_line = available_width / char_width;
 
       if (chars_per_line < 5)
@@ -333,7 +334,7 @@ void display_all_messages_with_refresh_type(bool force_full_refresh) {
       selected_font = &Font8;
       int char_width = selected_font->Width;
       int char_height = selected_font->Height;
-      int chars_per_line = (SCREEN_HEIGHT - 20) / char_width;
+      int chars_per_line = SCREEN_HEIGHT / char_width; // Use full screen width
       int max_lines = available_height / char_height;
 
       if (max_lines > 10)
@@ -418,7 +419,7 @@ void display_all_messages_with_refresh_type(bool force_full_refresh) {
       int x;
       if (layout == LAYOUT_TOPBAR) {
         // Right-aligned for topbar layout
-        x = SCREEN_HEIGHT - text_width - 10;
+        x = SCREEN_HEIGHT - text_width; // Remove horizontal margin
       } else {
         // Center-aligned for main layout
         x = (SCREEN_HEIGHT - text_width) / 2;

@@ -61,13 +61,13 @@ sudo make clean && sudo make
 ### Basic Commands
 
 ```sh
-./jarvis --on
-./jarvis --off
+jarvis --on
+jarvis --off
 
-./jarvis --light
-./jarvis --dark
+jarvis --light
+jarvis --dark
 
-./jarvis --help
+jarvis --help
 ```
 
 ### Display Messages
@@ -81,13 +81,13 @@ y=119-122: Bottom margin (3px)
 
 ```sh
 # Display message at the top
-sudo ./jarvis --message "Status Update" --layout topbar
+jarvis --message "Status Update" --layout topbar
 
 # Display message in center (default)
-sudo ./jarvis --message "Main message here" --layout main
+jarvis --message "Main message here" --layout main
 
 # Display message in dark mode
-sudo ./jarvis --dark --message "Dark mode message"
+jarvis --dark --message "Dark mode message"
 ```
 
 ## Persistence
@@ -96,10 +96,10 @@ When the screen is off, the latest message is automatically saved to `/tmp/jarvi
 
 ```sh
 # This message will be saved when screen is off
-./jarvis --message "Latest message" --layout topbar
+jarvis --message "Latest message" --layout topbar
 
 # Turn screen on - will display the stored message
-./jarvis --on
+jarvis --on
 ```
 
 ## Automation

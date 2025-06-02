@@ -1,7 +1,5 @@
 #!/bin/bash
 
-JARVIS_BIN="/home/sjdonado/jarvis/jarvis"
-
 # Make the API call and store the response
 # Added -sS for silent operation (no progress meter) but still show errors
 api_response=$(curl -sS -X GET 'https://zenquotes.io/api/today')
@@ -9,8 +7,6 @@ api_response=$(curl -sS -X GET 'https://zenquotes.io/api/today')
 # Check if curl command was successful and response is not empty
 if [ -z "$api_response" ]; then
   echo "Error: API call failed or returned empty response."
-  # Optionally send an error to Jarvis
-  # echo "Error: Could not fetch quote" | "$JARVIS_BIN" --stdin --layout topbar
   exit 1
 fi
 
@@ -25,8 +21,6 @@ if [ -z "$quote" ] || [ "$quote" == "null" ] || [ -z "$author" ] || [ "$author" 
   echo "Error: Could not parse quote or author from API response."
   echo "API Response was:"
   echo "$api_response" # For debugging
-  # Optionally send an error to Jarvis
-  # echo "Error: Could not parse quote/author" | "$JARVIS_BIN" --stdin --layout topbar
   exit 1
 fi
 
@@ -34,7 +28,7 @@ fi
 message_to_display="\"$quote\" - $author"
 
 # Display the formatted message on jarvis topbar
-echo "$message_to_display" | "$JARVIS_BIN" --stdin --layout main
+echo "$message_to_display" | jarvis --stdin --layout main
 
 # Echo to standard output as well
 echo "Topbar message: $message_to_display"
