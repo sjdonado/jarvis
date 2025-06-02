@@ -4,10 +4,6 @@ calculate_days() {
     local target_date=$1
     local current_date_val # Will be set to today's date for calculation
 
-    # Get current date in YYYY-MM-DD format.
-    # The original script used 'date +%Y-%m-%d' which is fine,
-    # but for consistency within this function, we can re-fetch or pass it.
-    # For simplicity, fetching it here.
     current_date_val=$(date +%Y-%m-%d)
 
     # Convert dates to seconds since epoch
@@ -70,9 +66,6 @@ year_days=$(calculate_days "$year_end_date") # Days until end of 2025
 
 # Format compact message for topbar
 message="S: ${summer_days} | M: ${days_to_month_end} | Y: ${year_days}"
-
-# Display on jarvis topbar
 echo "$message" | jarvis --stdin --layout topbar
 
-# Echo to standard output as well
 echo "Topbar countdown: $message"
