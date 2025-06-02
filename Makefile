@@ -36,7 +36,7 @@ CC = gcc
 CFLAGS = -Wall -g -O -ffunction-sections -fdata-sections -D epd2in13V4 -D USE_DEV_LIB -D RPI
 
 # Library dependencies
-LIBS = -lm -lgpiod -lpaho-mqtt3cs -lpthread -lwiringPi
+LIBS = -lm -lgpiod -lpthread -lwiringPi
 
 # Build target
 all: $(TARGET)
