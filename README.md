@@ -1,17 +1,6 @@
 # Jarvis E-Paper Display CLI
 
-> Jarvis It's alive! Here to inspire and keep a watchful eye on things 👀
-
-<img width="1200" alt="Screenshot 2024-10-29 at 07 44 21" src="https://github.com/user-attachments/assets/20e35afc-239d-4d34-8cd2-2744ec79401b">
-
-<div align="center">
-  <img width="300" alt="IMG_3603" src="https://github.com/user-attachments/assets/5b98a666-aa89-49d5-80e6-4c8cc2b04bcf">
-  <img width="300" alt="IMG_3602" src="https://github.com/user-attachments/assets/90aabb81-2482-47b3-92b3-75cb0453bb5c">
-</div>
-
-A CLI-based e-paper display controller for Raspberry Pi with 2.13" e-Paper display. Control your display directly via SSH with simple commands.
-
-## Features
+A CLI-based e-paper display controller for Raspberry Pi with 2.13" e-Paper display:
 
 - **Screen Control**: Turn the display on/off
 - **Display Modes**: Light and dark mode support
@@ -19,6 +8,11 @@ A CLI-based e-paper display controller for Raspberry Pi with 2.13" e-Paper displ
 - **Persistence**: Latest message is saved to disk when screen is off
 - **Direct CLI Access**: Perfect for SSH connections and automation
 - **System Monitoring**: Scripts for sending system stats from remote machines
+
+<div align="center">
+  <img width="300" alt="IMG_3603" src="https://github.com/user-attachments/assets/5b98a666-aa89-49d5-80e6-4c8cc2b04bcf">
+  <img width="300" alt="IMG_3602" src="https://github.com/user-attachments/assets/90aabb81-2482-47b3-92b3-75cb0453bb5c">
+</div>
 
 ## Setup
 
@@ -110,7 +104,8 @@ When the screen is off, the latest message is automatically saved to `/tmp/jarvi
 
 ## Automation
 ```sh
-0 9 * * * /path/to/jarvis/scripts/countdown_topbar.sh
+0 0 * * * /home/sjdonado/jarvis/scripts/countdown_topbar.sh
+0 0 * * * /home/sjdonado/jarvis/scripts/quote_of_the_day.sh
 ```
 
 ## State Management

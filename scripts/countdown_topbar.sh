@@ -1,11 +1,7 @@
 #!/bin/bash
 
-# Compact countdown script for jarvis topbar
-# Shows days remaining in a shorter format
+JARVIS_BIN="/home/sjdonado/jarvis/jarvis"
 
-JARVIS_BIN="./jarvis"
-
-# Function to calculate days between two dates (YYYY-MM-DD format)
 calculate_days() {
     local target_date=$1
     local current_date=$(date +%Y-%m-%d)
