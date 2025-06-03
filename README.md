@@ -103,9 +103,22 @@ jarvis --on
 ```
 
 ## Automation
-```sh
-0 0 * * * /home/sjdonado/jarvis/scripts/countdown_topbar.sh
-0 0 * * * /home/sjdonado/jarvis/scripts/quote_of_the_day.sh
+
+New script `init` in the home folder
+
+```bash
+#!/usr/bin/env bash
+
+/home/sjdonado/jarvis/scripts/countdown_topbar.sh && /home/sjdonado/jarvis/scripts/quote_of_the_day.sh && jarvis --on
+```
+
+```
+0 4 * * * /home/sjdonado/jarvis/init
+```
+
+Edit `/etc/rc.local`
+```
+/home/sjdonado/jarvis/init
 ```
 
 ## State Management
