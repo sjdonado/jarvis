@@ -10,8 +10,8 @@ A CLI-based e-paper display controller for Raspberry Pi with 2.13" e-Paper displ
 - **System Monitoring**: Scripts for sending system stats from remote machines
 
 <div align="center">
+  <img width="300" alt="IMG_5162" src="https://github.com/user-attachments/assets/7272d1fc-6dac-4a97-915f-5b6814bc9c49">
   <img width="300" alt="IMG_3603" src="https://github.com/user-attachments/assets/5b98a666-aa89-49d5-80e6-4c8cc2b04bcf">
-  <img width="300" alt="IMG_3602" src="https://github.com/user-attachments/assets/90aabb81-2482-47b3-92b3-75cb0453bb5c">
 </div>
 
 ## Setup
