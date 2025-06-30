@@ -117,7 +117,7 @@ quotes=(
   "To live is the rarest thing in the world. Most people exist, that is all. - Oscar Wilde"
   "If you're going through hell, keep going. - Winston Churchill"
   "Success is not final, failure is not fatal: it is the courage to continue that counts. - Winston Churchill"
-  "You have power over your mind – not outside events. Realize this, and you will find strength. - Marcus Aurelius"
+  "You have power over your mind, not outside events. Realize this, and you will find strength. - Marcus Aurelius"
   "Luck is what happens when preparation meets opportunity. - Seneca"
   "The unexamined life is not worth living. - Socrates"
   "Turn your wounds into wisdom. - Oprah Winfrey"

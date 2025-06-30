@@ -23,7 +23,7 @@ calculate_days() {
     if [[ $diff_days -lt 0 ]]; then
         echo "0"
     else
-        echo "$diff_days"
+        echo "$((diff_days + 1))"
     fi
 }
 
