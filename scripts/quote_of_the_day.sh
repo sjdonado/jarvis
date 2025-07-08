@@ -1,7 +1,12 @@
 #!/bin/bash
 
 quotes=(
-  "About 99% of the time, the right time is right now. - Kevin Kelly"
+  "There are no original ideas. There are only original people. - Barbara Grizzuti"
+  "The person who gets 1 shot needs everything to go right, the person who gets 1000 shots is going to score at some point. Find a way to play the game that ensures you get a lot of shots. - James Clear"
+  "Success isn't overnight. It's when everyday you get a little better than the day before. It all adds up. - Dwayne Johnson"
+  "I fear not the man who has practiced 10,000 kicks once, but I fear the man who has practiced one kick 10,000 times. - Bruce Lee"
+  "We're externally reliant on conditions being perfect in order to be able to go out and have a good time. - Josh Waitzkin"
+  "Optimism is the faith that leads to achievement, nothing can be done without hope. - Helen Keller"
   "No one is as impressed with your possessions as you are. - Kevin Kelly"
   "Don't ever work for someone you don't want to become. - Kevin Kelly"
   "Cultivate 12 people who love you, because they are worth more than 12 million people who like you. - Kevin Kelly"
@@ -193,6 +198,8 @@ quotes=(
   "I have not failed. I've just found 10,000 ways that won't work. - Thomas A. Edison"
   "A man is but what he knows. - Francis Bacon"
   "If I have seen further it is by standing on the sholders of Giants. - Isaac Newton"
+  "What does it mean to be motivated? For me it means choosing to push myself to be better in all things. In our work, in creativity, in life overall."
+  "It's so easy to think that we were in the dark yesterday but we're in the light today, but we're in the fucking dark today too. - Josh Waitzkin"
 )
 
 num_quotes=${#quotes[@]}
