@@ -8,12 +8,11 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "DEV_Config.h"
+#include "Config/DEV_Config.h"
 #include "Debug.h"
 #include "EPD_2in13_V4.h"
-#include "GUI_BMPfile.h"
-#include "GUI_Paint.h"
-#include "fonts.h"
+#include "GUI/GUI_Paint.h"
+#include "Fonts/fonts.h"
 
 #define SCREEN_WIDTH EPD_2in13_V4_WIDTH   // 122
 #define SCREEN_HEIGHT EPD_2in13_V4_HEIGHT // 250

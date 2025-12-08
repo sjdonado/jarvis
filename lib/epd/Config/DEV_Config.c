@@ -391,7 +391,11 @@ UBYTE DEV_Module_Init(void)
 	// GPIO Config
 	DEV_GPIO_Init();
 
-	bcm2835_spi_begin();                                         //Start spi interface, set spi pin for the reuse function
+	if(!bcm2835_spi_begin()) {                                  //Start spi interface
+		printf("bcm2835 spi begin failed (SPI disabled or insufficient permissions)\r\n");
+		bcm2835_close();
+		return 1;
+	}
 	bcm2835_spi_setBitOrder(BCM2835_SPI_BIT_ORDER_MSBFIRST);     //High first transmission
 	bcm2835_spi_setDataMode(BCM2835_SPI_MODE0);                  //spi mode 0
 	bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_128);  //Frequency

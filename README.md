@@ -16,28 +16,32 @@ A CLI-based e-paper display controller for Raspberry Pi with 2.13" e-Paper displ
 
 ## Setup
 
+Build
+
+```bash
+docker run --privileged --rm --platform=linux/arm64/v8 tonistiigi/binfmt --install arm
+
+docker buildx build --platform linux/arm/v6 -t jarvis .; and set cid (docker create jarvis /out/jarvis); and docker cp "$cid:/out/jarvis" ./jarvis; and docker rm "$cid"
+```
+
+Deploy
+```
+scp ./jarvis sjdonado@pizero.local:~/jarvis
+```
+
+Raspberry Pi Setup
+
 ```bash
 sudo apt update
 sudo apt-get update
 
-sudo apt-get install python3-pip gpiod libgpiod-dev
-
 sudo locale-gen en_US.UTF-8
 sudo dpkg-reconfigure locales
 
-wget https://github.com/joan2937/lg/archive/master.zip
-unzip master.zip
-cd lg-master
-make
-sudo make install
+sudo usermod -aG spi,gpio $USER
+reboot
 
-wget http://www.airspayce.com/mikem/bcm2835/bcm2835-1.71.tar.gz
-tar zxvf bcm2835-1.71.tar.gz
-cd bcm2835-1.71/
-sudo ./configure && sudo make && sudo make check && sudo make install
-
-wget https://github.com/WiringPi/WiringPi/releases/download/3.10/wiringpi_3.10_armhf.deb
-sudo apt install ./wiringpi_3.10_armhf.deb
+# ls -l /dev/spidev0.0   # should be group spi
 ```
 
 Make sure `sudo nvim /boot/firmware/config.txt` looks like this:
@@ -49,12 +53,6 @@ enable_uart=1
 dtoverlay=disable-bt
 ```
 otherwise, run `sudo raspi-config` and enable Interface Options > I4 and Interface Options > I6
-
-## Build
-
-```sh
-sudo make clean && sudo make
-```
 
 ## Usage
 
