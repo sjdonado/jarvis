@@ -1,0 +1,23 @@
+mkdir -p lib/sysroot
+rsync -av pizero.local:/usr/include lib/sysroot/usr/
+rsync -av pizero.local:/usr/lib/arm-linux-gnueabihf lib/sysroot/usr/lib/
+rsync -av pizero.local:/lib/arm-linux-gnueabihf lib/sysroot/lib/
+
+# With buildx for arm (Pi Zero/1/2):
+docker buildx build -t jarvis .
+docker create --name jb jarvis
+docker cp jb:/out/jarvis ./jarvis
+docker rm jb
+
+docker build -t jarvis-builder .; and set cid (docker create jarvis-builder /out/jarvis); and docker cp "$cid:/out/jarvis" ./jarvis; and docker rm "$cid"
+scp ./jarvis pizero.local:~/jarvis
+
+docker build -t jarvis-builder .; and set cid (docker create jarvis-builder /out/jarvis); and docker cp "$cid:/out/jarvis" ./jarvis; and docker rm "$cid"; and scp ./jarvis dj@pizero.local:~/jarvis
+
+docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+docker run --privileged --rm --platform=linux/arm64/v8 tonistiigi/binfmt --install arm
+
+docker buildx build --platform linux/arm/v6 -t jarvis .; and set cid (docker create jarvis /out/jarvis); and docker cp "$cid:/out/jarvis" ./jarvis; and docker rm "$cid"; and scp ./jarvis pi@pizero.local:~/jarvis
+
+scp ./jarvis pi@pizero.local:~/jarvis

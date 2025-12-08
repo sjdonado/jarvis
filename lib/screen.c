@@ -9,7 +9,7 @@
 #include "EPD_2in13_V4.h"
 #include "Fonts/fonts.h"
 #include "GUI/GUI_Paint.h"
-#include "jarvis.h"
+#include "screen.h"
 
 #define SCREEN_WIDTH EPD_2in13_V4_WIDTH   // 122
 #define SCREEN_HEIGHT EPD_2in13_V4_HEIGHT // 250
@@ -60,7 +60,7 @@ static bool init_framebuffer(void) {
   return true;
 }
 
-bool jarvis_turn_on(void) {
+bool screen_turn_on(void) {
   if (screen_on) {
     return true;
   }
@@ -82,7 +82,7 @@ bool jarvis_turn_on(void) {
   return true;
 }
 
-void jarvis_turn_off(void) {
+void screen_turn_off(void) {
   if (!screen_on) {
     return;
   }
@@ -122,14 +122,14 @@ static void truncate_to_width(char *dest, size_t dest_size, const char *src,
   strncat(dest, "...", dest_size - strlen(dest) - 1);
 }
 
-bool jarvis_paint(const char **lines, int line_count, int font_height) {
+bool screen_paint(const char **lines, int line_count, int font_height) {
   const sFONT *font = choose_font(font_height);
   if (line_count <= 0) {
     fprintf(stderr, "paint: no lines provided\n");
     return false;
   }
 
-  if (!screen_on && !jarvis_turn_on()) {
+  if (!screen_on && !screen_turn_on()) {
     return false;
   }
   if (!init_framebuffer()) {
