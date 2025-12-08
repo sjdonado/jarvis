@@ -165,24 +165,25 @@ func main() {
 	quoteRefresh := time.NewTicker(time.Until(time.Now().Truncate(24 * time.Hour).Add(24 * time.Hour)))
 	defer quoteRefresh.Stop()
 
+	if err := screen.Paint([]string{"Welcome :)"}, defaultFontSize); err != nil {
+		fmt.Fprintf(os.Stderr, "Paint failed: %v\n", err)
+	}
 	showQuote := true
 	for {
-		if showQuote {
-			lines, chosenFont := prepareLines(q, defaultFontSize)
-			if err := screen.Paint(lines, chosenFont.height); err != nil {
-				fmt.Fprintf(os.Stderr, "Paint failed: %v\n", err)
-			}
-		} else {
-			lines := notifications.BuildLines(time.Now(), rotator.LastFetch)
-			if err := screen.Paint(lines, defaultFontSize); err != nil {
-				fmt.Fprintf(os.Stderr, "Paint failed: %v\n", err)
-			}
-		}
-		showQuote = !showQuote
-
 		select {
 		case <-ticker.C:
-			q = rotator.NextQuote()
+			if showQuote {
+				lines, chosenFont := prepareLines(q, defaultFontSize)
+				if err := screen.Paint(lines, chosenFont.height); err != nil {
+					fmt.Fprintf(os.Stderr, "Paint failed: %v\n", err)
+				}
+			} else {
+				lines := notifications.BuildLines(time.Now(), rotator.LastFetch)
+				if err := screen.Paint(lines, defaultFontSize); err != nil {
+					fmt.Fprintf(os.Stderr, "Paint failed: %v\n", err)
+				}
+			}
+			showQuote = !showQuote
 		case <-quoteRefresh.C:
 			quoteRefresh.Reset(24 * time.Hour)
 			rotator.Refresh()
