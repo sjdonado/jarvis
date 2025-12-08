@@ -4,6 +4,9 @@ DIR_FONTS    = $(DIR_EPD)/Fonts
 DIR_GUI      = $(DIR_EPD)/GUI
 DIR_BIN      = ./bin
 
+JARVIS_SRC   = ./lib/jarvis.c
+JARVIS_OBJ   = $(DIR_BIN)/jarvis.o
+
 # Optional local bcm2835 bundle extracted under lib/libbcm2835
 LOCAL_BCM2835_DIR = ./lib/libbcm2835
 # External sysroot (when cross-compiling inside a toolchain container)
@@ -12,11 +15,7 @@ SYSROOT ?=
 # Ensure bin directory exists
 $(shell mkdir -p $(DIR_BIN))
 
-# Target executable
-TARGET = jarvis
-
-# Source files
-SRC_MAIN = main.c
+TARGET = libjarvis.a
 
 EPD_SOURCES = $(wildcard $(DIR_EPD)/*.c)
 EPD_OBJECTS = $(patsubst $(DIR_EPD)/%.c, $(DIR_BIN)/epd_%.o, $(EPD_SOURCES))
@@ -32,9 +31,7 @@ CONFIG_OBJECTS = $(patsubst $(DIR_Config)/%.c, $(DIR_BIN)/config_%.o, $(CONFIG_S
 
 # All library objects
 LIB_OBJECTS = $(EPD_OBJECTS) $(GUI_OBJECTS) $(FONTS_OBJECTS) $(CONFIG_OBJECTS)
-
-# Main object
-MAIN_OBJECT = $(DIR_BIN)/main.o
+ARCHIVE_OBJECTS = $(JARVIS_OBJ) $(LIB_OBJECTS)
 
 # Compiler options
 CC ?= gcc
@@ -69,13 +66,12 @@ endif
 # Build target
 all: $(TARGET)
 
-$(TARGET): $(MAIN_OBJECT) $(LIB_OBJECTS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
-	chmod +x $(TARGET)
+$(TARGET): $(ARCHIVE_OBJECTS)
+	ar rcs $@ $^
 
-# Compile main.c
-$(DIR_BIN)/main.o: main.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@ -I$(DIR_Config) -I$(DIR_GUI) -I$(DIR_FONTS) -I$(DIR_EPD)
+# Compile jarvis.c
+$(JARVIS_OBJ): $(JARVIS_SRC)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@ -I. -I$(DIR_EPD) -I$(DIR_Config) -I$(DIR_GUI) -I$(DIR_FONTS)
 
 # Compile EPD sources
 $(DIR_BIN)/epd_%.o: $(DIR_EPD)/%.c
