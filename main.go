@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
 	"os"
@@ -23,21 +24,34 @@ const QUOTES_ENDPOINT = "https://gist.githubusercontent.com/sjdonado/66c22e7fafe
 const defaultFontSize = 16
 const defaultInterval = 15 * time.Second
 const quoteRefreshHour = 0
+const quotesCachePath = "quotes.json"
 
-func loadQuotes() ([]quote, error) {
-	res, err := http.Get(QUOTES_ENDPOINT)
+func loadQuotesFromFile(path string) ([]quote, error) {
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
-
 	var qs []quote
-	decoder := json.NewDecoder(res.Body)
-	if err := decoder.Decode(&qs); err != nil {
+	if err := json.Unmarshal(data, &qs); err != nil {
 		return nil, err
 	}
-
 	return qs, nil
+}
+
+func fetchQuotesToFile(path string) error {
+	resp, err := http.Get(QUOTES_ENDPOINT)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("bad status: %s", resp.Status)
+	}
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0644)
 }
 
 func pickRandomQuote(qs []quote) quote {
@@ -199,25 +213,29 @@ func countdownTargets(now time.Time) (int, int, int) {
 	return daysMonth, daysSummer, daysTarget
 }
 
-func buildCountdownLines(now time.Time) []string {
+func buildNotificationLines(now time.Time, lastFetch time.Time) []string {
 	daysMonth, daysSummer, daysTarget := countdownTargets(now)
 	return []string{
 		fmt.Sprintf("End of month: %d days", daysMonth),
 		fmt.Sprintf("Next summer: %d days", daysSummer),
 		fmt.Sprintf("30 Sep 2028: %d days", daysTarget),
+		fmt.Sprintf("Updated: %s", lastFetch.Format("2006-01-02")),
 	}
 }
 
 func main() {
-	if len(os.Args) > 1 && os.Args[1] == "--off" {
-		screen.TurnOff()
-		return
-	}
-
-	qs, err := loadQuotes()
+	// Load cached quotes if present; otherwise fetch and cache.
+	var qs []quote
+	qs, err := loadQuotesFromFile(quotesCachePath)
+	lastFetch := time.Now()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to load quotes: %v\n", err)
-		os.Exit(1)
+		if fetchErr := fetchQuotesToFile(quotesCachePath); fetchErr != nil {
+			fmt.Fprintf(os.Stderr, "Failed to load quotes (no cache and fetch failed): %v\n", fetchErr)
+			lastFetch = time.Time{}
+		} else {
+			qs, _ = loadQuotesFromFile(quotesCachePath)
+			lastFetch = time.Now()
+		}
 	}
 	q := pickRandomQuote(qs)
 
@@ -250,7 +268,7 @@ func main() {
 				fmt.Fprintf(os.Stderr, "Paint failed: %v\n", err)
 			}
 		} else {
-			lines := buildCountdownLines(time.Now())
+			lines := buildNotificationLines(time.Now(), lastFetch)
 			if err := screen.Paint(lines, defaultFontSize); err != nil {
 				fmt.Fprintf(os.Stderr, "Paint failed: %v\n", err)
 			}
@@ -261,6 +279,12 @@ func main() {
 		case <-ticker.C:
 		case <-quoteRefresh.C:
 			quoteRefresh.Reset(24 * time.Hour)
+			if fetchErr := fetchQuotesToFile(quotesCachePath); fetchErr == nil {
+				if newQs, err := loadQuotesFromFile(quotesCachePath); err == nil && len(newQs) > 0 {
+					qs = newQs
+					lastFetch = time.Now()
+				}
+			}
 			q = pickRandomQuote(qs)
 		}
 	}

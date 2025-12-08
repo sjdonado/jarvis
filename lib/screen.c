@@ -169,6 +169,6 @@ bool screen_paint(const char **lines, int line_count, int font_height) {
     Paint_DrawString_EN(x, y, rendered, font, bg, fg);
   }
 
-  EPD_2in13_V4_Display_Base(BlackImage);
+  EPD_2in13_V4_Display_Partial(BlackImage);
   return true;
 }
