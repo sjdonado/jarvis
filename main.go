@@ -1,66 +1,28 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
-	"math/rand"
-	"net/http"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 	"time"
 
+	"jarvis/notifications"
+	"jarvis/quotes"
 	"jarvis/screen"
 )
 
-type quote struct {
-	Quote  string `json:"quote"`
-	Author string `json:"author"`
-}
-
-const QUOTES_ENDPOINT = "https://gist.githubusercontent.com/sjdonado/66c22e7fafe4505bcbd7a167249bfd5f/raw/quotes.json"
-const defaultFontSize = 16
-const defaultInterval = 15 * time.Second
-const quoteRefreshHour = 0
-const quotesCachePath = "quotes.json"
-
-func loadQuotesFromFile(path string) ([]quote, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	var qs []quote
-	if err := json.Unmarshal(data, &qs); err != nil {
-		return nil, err
-	}
-	return qs, nil
-}
-
-func fetchQuotesToFile(path string) error {
-	resp, err := http.Get(QUOTES_ENDPOINT)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad status: %s", resp.Status)
-	}
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(path, data, 0644)
-}
-
-func pickRandomQuote(qs []quote) quote {
-	if len(qs) == 0 {
-		return quote{Quote: "No quotes available", Author: ""}
-	}
-	rand.Seed(time.Now().UnixNano())
-	return qs[rand.Intn(len(qs))]
-}
+const (
+	defaultFontSize  = 16
+	defaultInterval  = 15 * time.Second
+	quoteRefreshHour = 0
+	quotesCachePath  = "quotes.json"
+	screenHeightPx   = 250
+	screenWidthPx    = 122
+	topMargin        = 2
+	bottomMargin     = 3
+)
 
 type fontOption struct {
 	height int
@@ -73,13 +35,6 @@ var fontOptions = []fontOption{
 	{12, 7},
 	{8, 5},
 }
-
-const (
-	screenHeightPx = 250
-	screenWidthPx  = 122
-	topMargin      = 2
-	bottomMargin   = 3
-)
 
 func wrapText(text string, maxChars int) []string {
 	if maxChars <= 0 {
@@ -126,7 +81,7 @@ func hardWrapIfNeeded(lines []string, maxChars int) []string {
 }
 
 // prepareLines wraps quote+author at preferred font; only shrink font if it still won't fit vertically.
-func prepareLines(q quote, preferredHeight int) (lines []string, font fontOption) {
+func prepareLines(q quotes.Quote, preferredHeight int) (lines []string, font fontOption) {
 	contentHeight := screenWidthPx - topMargin - bottomMargin
 
 	// resolve starting font (requested or default to Font16)
@@ -181,63 +136,13 @@ func prepareLines(q quote, preferredHeight int) (lines []string, font fontOption
 	return wrapped, f
 }
 
-func daysUntil(target time.Time) int {
-	now := time.Now()
-	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	end := time.Date(target.Year(), target.Month(), target.Day(), 0, 0, 0, 0, target.Location())
-	if end.Before(start) {
-		return 0
-	}
-	// Inclusive of end day
-	d := end.Sub(start)
-	return int(d.Hours()/24) + 1
-}
-
-func countdownTargets(now time.Time) (int, int, int) {
-	// End of current month
-	firstNextMonth := time.Date(now.Year(), now.Month()+1, 1, 0, 0, 0, 0, now.Location())
-	lastDayThisMonth := firstNextMonth.Add(-24 * time.Hour)
-	daysMonth := daysUntil(lastDayThisMonth)
-
-	// Next summer (June 20)
-	nextSummer := time.Date(now.Year(), time.June, 20, 0, 0, 0, 0, now.Location())
-	if !nextSummer.After(now) {
-		nextSummer = time.Date(now.Year()+1, time.June, 20, 0, 0, 0, 0, now.Location())
-	}
-	daysSummer := daysUntil(nextSummer)
-
-	// Fixed date: 2028-09-30
-	target := time.Date(2028, time.September, 30, 0, 0, 0, 0, now.Location())
-	daysTarget := daysUntil(target)
-
-	return daysMonth, daysSummer, daysTarget
-}
-
-func buildNotificationLines(now time.Time, lastFetch time.Time) []string {
-	daysMonth, daysSummer, daysTarget := countdownTargets(now)
-	return []string{
-		fmt.Sprintf("End of month: %d days", daysMonth),
-		fmt.Sprintf("Next summer: %d days", daysSummer),
-		fmt.Sprintf("30 Sep 2028: %d days", daysTarget),
-		fmt.Sprintf("Updated: %s", lastFetch.Format("2006-01-02")),
-	}
-}
-
 func main() {
-	// Load cached quotes if present; otherwise fetch and cache.
-	var qs []quote
-	qs, err := loadQuotesFromFile(quotesCachePath)
-	lastFetch := time.Now()
+	rotator, err := quotes.NewRotatorFromCache()
 	if err != nil {
-		if fetchErr := fetchQuotesToFile(quotesCachePath); fetchErr != nil {
-			fmt.Fprintf(os.Stderr, "Failed to load quotes (no cache and fetch failed): %v\n", fetchErr)
-			lastFetch = time.Time{}
-		} else {
-			qs, _ = loadQuotesFromFile(quotesCachePath)
-			lastFetch = time.Now()
-		}
+		fmt.Fprintf(os.Stderr, "Failed to load quotes: %v\n", err)
+		rotator = quotes.NewRotator([]quotes.Quote{{Quote: "No quotes available", Author: ""}})
 	}
-	q := pickRandomQuote(qs)
+	q := rotator.NextQuote()
 
 	if err := screen.TurnOn(); err != nil {
 		fmt.Fprintf(os.Stderr, "Turn on failed: %v\n", err)
@@ -268,7 +173,7 @@ func main() {
 				fmt.Fprintf(os.Stderr, "Paint failed: %v\n", err)
 			}
 		} else {
-			lines := buildNotificationLines(time.Now(), lastFetch)
+			lines := notifications.BuildLines(time.Now(), rotator.LastFetch)
 			if err := screen.Paint(lines, defaultFontSize); err != nil {
 				fmt.Fprintf(os.Stderr, "Paint failed: %v\n", err)
 			}
@@ -277,15 +182,11 @@ func main() {
 
 		select {
 		case <-ticker.C:
+			q = rotator.NextQuote()
 		case <-quoteRefresh.C:
 			quoteRefresh.Reset(24 * time.Hour)
-			if fetchErr := fetchQuotesToFile(quotesCachePath); fetchErr == nil {
-				if newQs, err := loadQuotesFromFile(quotesCachePath); err == nil && len(newQs) > 0 {
-					qs = newQs
-					lastFetch = time.Now()
-				}
-			}
-			q = pickRandomQuote(qs)
+			rotator.Refresh()
+			q = rotator.NextQuote()
 		}
 	}
 }
