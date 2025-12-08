@@ -40,8 +40,9 @@ sudo dpkg-reconfigure locales
 
 sudo usermod -aG spi,gpio $USER
 reboot
-
 # ls -l /dev/spidev0.0   # should be group spi
+
+~/jarvis > ~/jarvis.log 2>&1 &
 ```
 
 Make sure `sudo nvim /boot/firmware/config.txt` looks like this:
@@ -54,63 +55,17 @@ dtoverlay=disable-bt
 ```
 otherwise, run `sudo raspi-config` and enable Interface Options > I4 and Interface Options > I6
 
-## Usage
-
-### Basic Commands
-
-```sh
-jarvis --on
-jarvis --off
-
-jarvis --light
-jarvis --dark
-
-jarvis --help
-```
-
-### Display Messages
-
-```
-y=0-2:    Top margin (2px)
-y=2-22:   Navbar area (20px)
-y=22-119: Main content (97px)
-y=119-122: Bottom margin (3px)
-```
-
-```sh
-# Display message at the top
-jarvis --message "Status Update" --layout topbar
-
-# Display message in center (default)
-jarvis --message "Main message here" --layout main
-
-# Display message in dark mode
-jarvis --dark --message "Dark mode message"
-```
-
-## Persistence
-
-When the screen is off, the latest message is automatically saved to `/tmp/jarvis_state.txt`. When you turn the screen back on, the stored message will be displayed automatically.
-
-```sh
-# This message will be saved when screen is off
-jarvis --message "Latest message" --layout topbar
-
-# Turn screen on - will display the stored message
-jarvis --on
-```
-
 ## Automation
 
-Crontab
+Run at Startup
 
-To run Jarvis automatically using crontab, add the following entry:
+To run Jarvis automatically at system startup, you can use `crontab`. Add the following entry to your crontab:
 
 ```
-0 0 * * * /home/sjdonado/jarvis
+@reboot /home/sjdonado/jarvis > /home/sjdonado/jarvis.log 2>&1 &
 ```
 
-This will execute the `/home/sjdonado/jarvis` script daily at midnight.
+This will execute the `/home/sjdonado/jarvis` script once every time the system boots up, running it in the background and redirecting its output (both standard output and standard error) to `/home/sjdonado/jarvis.log`.
 
 
 ---

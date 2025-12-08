@@ -2,12 +2,13 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"math/rand"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"jarvis/screen"
@@ -19,6 +20,9 @@ type quote struct {
 }
 
 const QUOTES_ENDPOINT = "https://gist.githubusercontent.com/sjdonado/66c22e7fafe4505bcbd7a167249bfd5f/raw/quotes.json"
+const defaultFontSize = 16
+const defaultInterval = 15 * time.Second
+const quoteRefreshHour = 0
 
 func loadQuotes() ([]quote, error) {
 	res, err := http.Get(QUOTES_ENDPOINT)
@@ -123,9 +127,6 @@ func prepareLines(q quote, preferredHeight int) (lines []string, font fontOption
 	}
 
 	text := q.Quote
-	if q.Author != "" {
-		text = fmt.Sprintf("%s - %s", q.Quote, q.Author)
-	}
 
 	// Try requested font first
 	for i := startIdx; i < len(fontOptions); i++ {
@@ -137,7 +138,18 @@ func prepareLines(q quote, preferredHeight int) (lines []string, font fontOption
 		if maxLines < 1 {
 			maxLines = 1
 		}
+
+		author := strings.TrimSpace(q.Author)
+		authorLine := ""
+		if author != "" {
+			authorLine = "- " + author
+			maxLines--
+		}
+
 		if len(wrapped) <= maxLines {
+			if authorLine != "" {
+				wrapped = append(wrapped, authorLine)
+			}
 			return wrapped, f
 		}
 		// only shrink if it doesn't fit; continue loop to smaller fonts
@@ -148,31 +160,56 @@ func prepareLines(q quote, preferredHeight int) (lines []string, font fontOption
 	maxChars := screenHeightPx / f.width
 	wrapped := wrapText(text, maxChars)
 	wrapped = hardWrapIfNeeded(wrapped, maxChars)
+	author := strings.TrimSpace(q.Author)
+	if author != "" {
+		wrapped = append(wrapped, "- "+author)
+	}
 	return wrapped, f
 }
 
+func daysUntil(target time.Time) int {
+	now := time.Now()
+	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	end := time.Date(target.Year(), target.Month(), target.Day(), 0, 0, 0, 0, target.Location())
+	if end.Before(start) {
+		return 0
+	}
+	// Inclusive of end day
+	d := end.Sub(start)
+	return int(d.Hours()/24) + 1
+}
+
+func countdownTargets(now time.Time) (int, int, int) {
+	// End of current month
+	firstNextMonth := time.Date(now.Year(), now.Month()+1, 1, 0, 0, 0, 0, now.Location())
+	lastDayThisMonth := firstNextMonth.Add(-24 * time.Hour)
+	daysMonth := daysUntil(lastDayThisMonth)
+
+	// Next summer (June 20)
+	nextSummer := time.Date(now.Year(), time.June, 20, 0, 0, 0, 0, now.Location())
+	if !nextSummer.After(now) {
+		nextSummer = time.Date(now.Year()+1, time.June, 20, 0, 0, 0, 0, now.Location())
+	}
+	daysSummer := daysUntil(nextSummer)
+
+	// Fixed date: 2028-09-30
+	target := time.Date(2028, time.September, 30, 0, 0, 0, 0, now.Location())
+	daysTarget := daysUntil(target)
+
+	return daysMonth, daysSummer, daysTarget
+}
+
+func buildCountdownLines(now time.Time) []string {
+	daysMonth, daysSummer, daysTarget := countdownTargets(now)
+	return []string{
+		fmt.Sprintf("End of month: %d days", daysMonth),
+		fmt.Sprintf("Next summer: %d days", daysSummer),
+		fmt.Sprintf("30 Sep 2028: %d days", daysTarget),
+	}
+}
+
 func main() {
-	var (
-		flagOn       = flag.Bool("on", false, "Turn the display on and show a random quote")
-		flagOff      = flag.Bool("off", false, "Turn the display off")
-		flagFontSize = flag.Int("font-size", 16, "Optional font height (8,12,16,20)")
-	)
-	flag.Parse()
-
-	cmdCount := 0
-	if *flagOn {
-		cmdCount++
-	}
-	if *flagOff {
-		cmdCount++
-	}
-	if cmdCount != 1 {
-		fmt.Fprintf(os.Stderr, "Specify exactly one of --on or --off\n")
-		flag.Usage()
-		os.Exit(1)
-	}
-
-	if *flagOff {
+	if len(os.Args) > 1 && os.Args[1] == "--off" {
 		screen.TurnOff()
 		return
 	}
@@ -189,10 +226,42 @@ func main() {
 		os.Exit(1)
 	}
 
-	lines, chosenFont := prepareLines(q, *flagFontSize)
+	// Graceful shutdown
+	sigc := make(chan os.Signal, 1)
+	signal.Notify(sigc, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigc
+		screen.TurnOff()
+		os.Exit(0)
+	}()
 
-	if err := screen.Paint(lines, chosenFont.height); err != nil {
-		fmt.Fprintf(os.Stderr, "Paint failed: %v\n", err)
-		os.Exit(1)
+	ticker := time.NewTicker(defaultInterval)
+	defer ticker.Stop()
+
+	// daily quote refresh at midnight
+	quoteRefresh := time.NewTicker(time.Until(time.Now().Truncate(24 * time.Hour).Add(24 * time.Hour)))
+	defer quoteRefresh.Stop()
+
+	showQuote := true
+	for {
+		if showQuote {
+			lines, chosenFont := prepareLines(q, defaultFontSize)
+			if err := screen.Paint(lines, chosenFont.height); err != nil {
+				fmt.Fprintf(os.Stderr, "Paint failed: %v\n", err)
+			}
+		} else {
+			lines := buildCountdownLines(time.Now())
+			if err := screen.Paint(lines, defaultFontSize); err != nil {
+				fmt.Fprintf(os.Stderr, "Paint failed: %v\n", err)
+			}
+		}
+		showQuote = !showQuote
+
+		select {
+		case <-ticker.C:
+		case <-quoteRefresh.C:
+			quoteRefresh.Reset(24 * time.Hour)
+			q = pickRandomQuote(qs)
+		}
 	}
 }
