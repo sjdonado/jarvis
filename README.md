@@ -102,26 +102,16 @@ jarvis --on
 
 ## Automation
 
-New script `init` in the home folder
+Crontab
 
-```bash
-#!/usr/bin/env bash
-
-/home/sjdonado/jarvis/scripts/countdown_topbar.sh && /home/sjdonado/jarvis/scripts/quote_of_the_day.sh && jarvis --on
-```
+To run Jarvis automatically using crontab, add the following entry:
 
 ```
-0 4 * * * /home/sjdonado/jarvis/init
+0 0 * * * /home/sjdonado/jarvis
 ```
 
-Edit `/etc/rc.local`
-```
-/home/sjdonado/jarvis/init
-```
+This will execute the `/home/sjdonado/jarvis` script daily at midnight.
 
-## State Management
-
-The application maintains its state (screen on/off, display mode, latest message) in `/tmp/jarvis_state.txt`.
 
 ---
 

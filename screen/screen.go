@@ -1,9 +1,9 @@
 package screen
 
 /*
-#cgo CFLAGS: -I${SRCDIR}/../lib -I${SRCDIR}/epd -I${SRCDIR}/epd/Config -I${SRCDIR}/epd/GUI -I${SRCDIR}/epd/Fonts -march=armv6 -mfpu=vfp -mfloat-abi=hard
-#cgo LDFLAGS: -L${SRCDIR}/libbcm2835/lib -lbcm2835 -lm -lpthread
-#include "screen.h"
+#cgo CFLAGS: -I${SRCDIR}/../lib -I${SRCDIR}/../lib/epd -I${SRCDIR}/../lib/epd/Config -I${SRCDIR}/../lib/epd/GUI -I${SRCDIR}/../lib/epd/Fonts -march=armv6 -mfpu=vfp -mfloat-abi=hard
+#cgo LDFLAGS: -L${SRCDIR}/.. -lscreen -L${SRCDIR}/../lib/libbcm2835/lib -lbcm2835 -lm -lpthread
+#include "../lib/screen.h"
 #include <stdlib.h>
 */
 import "C"

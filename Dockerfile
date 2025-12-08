@@ -1,8 +1,12 @@
 FROM balenalib/rpi-raspbian:bookworm AS build
 
 RUN apt-get update && \
-  apt-get install -y --no-install-recommends build-essential ca-certificates golang gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf && \
+  apt-get install -y --no-install-recommends build-essential ca-certificates gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf curl && \
   rm -rf /var/lib/apt/lists/*
+
+ENV GO_VERSION=1.25.5
+RUN curl -L https://go.dev/dl/go${GO_VERSION}.linux-armv6l.tar.gz | tar -C /usr/local -xz
+ENV PATH=/usr/local/go/bin:${PATH}
 
 WORKDIR /app
 COPY . .
