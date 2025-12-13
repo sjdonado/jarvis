@@ -158,11 +158,7 @@ func main() {
 	// Graceful shutdown
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-sigc
-		screen.TurnOff()
-		os.Exit(0)
-	}()
+	defer signal.Stop(sigc)
 
 	ticker := time.NewTicker(defaultInterval)
 	defer ticker.Stop()
@@ -174,9 +170,14 @@ func main() {
 	if err := screen.Paint([]string{"Welcome :)"}, defaultFontSize); err != nil {
 		fmt.Fprintf(os.Stderr, "Paint failed: %v\n", err)
 	}
+
 	showQuote := true
 	for {
 		select {
+		case <-sigc:
+			screen.TurnOff()
+			time.Sleep(4 * time.Second)
+			return
 		case <-ticker.C:
 			if showQuote {
 				lines, chosenFont := prepareLines(q, defaultFontSize)
