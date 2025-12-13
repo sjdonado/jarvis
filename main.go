@@ -22,7 +22,7 @@ const (
 	screenHeightPx   = 250
 	screenWidthPx    = 122
 	topMargin        = 2
-	bottomMargin     = 3
+	bottomMargin     = 2
 )
 
 type fontOption struct {
@@ -137,9 +137,22 @@ func prepareLines(q quotes.Quote, preferredHeight int) (lines []string, font fon
 	return wrapped, f
 }
 
-func nextLocalMidnight(t time.Time) time.Time {
+func nextDailyAtHour(hour int) time.Time {
+	t := time.Now()
 	y, m, d := t.Date()
-	return time.Date(y, m, d+1, 0, 0, 0, 0, t.Location())
+	loc := t.Location()
+
+	refreshHour := hour % 24
+	if refreshHour < 0 {
+		refreshHour += 24
+	}
+
+	candidate := time.Date(y, m, d, refreshHour, 0, 0, 0, loc)
+	if !t.Before(candidate) {
+		candidate = candidate.Add(24 * time.Hour)
+	}
+	log.Printf("Next quote refresh scheduled at %s", candidate.Format(time.RFC3339))
+	return candidate
 }
 
 func main() {
@@ -163,9 +176,8 @@ func main() {
 	ticker := time.NewTicker(defaultInterval)
 	defer ticker.Stop()
 
-	midnightTimer := time.NewTimer(time.Until(nextLocalMidnight(time.Now())))
-	defer midnightTimer.Stop()
-	log.Printf("Next quote refresh scheduled at %s", nextLocalMidnight(time.Now()).Format(time.RFC3339))
+	refreshQuotesTimer := time.NewTimer(time.Until(nextDailyAtHour(quoteRefreshHour)))
+	defer refreshQuotesTimer.Stop()
 
 	if err := screen.Paint([]string{"Welcome :)"}, defaultFontSize); err != nil {
 		fmt.Fprintf(os.Stderr, "Paint failed: %v\n", err)
@@ -191,11 +203,11 @@ func main() {
 				}
 			}
 			showQuote = !showQuote
-		case <-midnightTimer.C:
+		case <-refreshQuotesTimer.C:
 			rotator.Refresh()
 			q = rotator.NextQuote()
 			log.Printf("Quote refreshed at %s: %q — %s", time.Now().Format(time.RFC3339), q.Quote, q.Author)
-			midnightTimer.Reset(time.Until(nextLocalMidnight(time.Now())))
+			refreshQuotesTimer.Reset(time.Until(nextDailyAtHour(quoteRefreshHour)))
 		}
 	}
 }
