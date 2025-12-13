@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"strings"
@@ -136,6 +137,11 @@ func prepareLines(q quotes.Quote, preferredHeight int) (lines []string, font fon
 	return wrapped, f
 }
 
+func nextLocalMidnight(t time.Time) time.Time {
+	y, m, d := t.Date()
+	return time.Date(y, m, d+1, 0, 0, 0, 0, t.Location())
+}
+
 func main() {
 	rotator, err := quotes.NewRotatorFromCache()
 	if err != nil {
@@ -161,9 +167,9 @@ func main() {
 	ticker := time.NewTicker(defaultInterval)
 	defer ticker.Stop()
 
-	// daily quote refresh at midnight
-	quoteRefresh := time.NewTicker(time.Until(time.Now().Truncate(24 * time.Hour).Add(24 * time.Hour)))
-	defer quoteRefresh.Stop()
+	midnightTimer := time.NewTimer(time.Until(nextLocalMidnight(time.Now())))
+	defer midnightTimer.Stop()
+	log.Printf("Next quote refresh scheduled at %s", nextLocalMidnight(time.Now()).Format(time.RFC3339))
 
 	if err := screen.Paint([]string{"Welcome :)"}, defaultFontSize); err != nil {
 		fmt.Fprintf(os.Stderr, "Paint failed: %v\n", err)
@@ -184,10 +190,11 @@ func main() {
 				}
 			}
 			showQuote = !showQuote
-		case <-quoteRefresh.C:
-			quoteRefresh.Reset(24 * time.Hour)
+		case <-midnightTimer.C:
 			rotator.Refresh()
 			q = rotator.NextQuote()
+			log.Printf("Quote refreshed at %s: %q — %s", time.Now().Format(time.RFC3339), q.Quote, q.Author)
+			midnightTimer.Reset(time.Until(nextLocalMidnight(time.Now())))
 		}
 	}
 }
