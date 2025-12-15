@@ -54,7 +54,7 @@ Run Jarvis automatically at startup via systemd (preferred over cron):
 Description=Jarvis Service
 
 [Service]
-ExecStart=/bin/sh -c '/home/sjdonado/jarvis > /home/sjdonado/jarvis.log 2>&1'
+ExecStart=/bin/sh -c '/home/sjdonado/jarvis >> /home/sjdonado/jarvis.log 2>&1'
 Restart=always
 User=root
 WorkingDirectory=/home/sjdonado

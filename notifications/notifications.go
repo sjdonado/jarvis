@@ -5,6 +5,23 @@ import (
 	"time"
 )
 
+type entry struct {
+	label string
+	value string
+}
+
+func endOfQuarter(t time.Time) time.Time {
+	quarter := (int(t.Month()) - 1) / 3
+	endMonth := time.Month(quarter*3 + 3)
+	firstNextMonth := time.Date(t.Year(), endMonth+1, 1, 0, 0, 0, 0, t.Location())
+	return firstNextMonth.Add(-24 * time.Hour)
+}
+
+func quarterLabel(t time.Time) string {
+	quarter := (int(t.Month())-1)/3 + 1
+	return fmt.Sprintf("Q%d", quarter)
+}
+
 func DaysUntil(target time.Time) int {
 	now := time.Now()
 	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
@@ -37,12 +54,33 @@ func CountdownTargets(now time.Time) (int, int, int) {
 	return daysMonth, daysSummer, daysTarget
 }
 
-func BuildLines(now time.Time, lastFetch time.Time) []string {
+func BuildLines(now time.Time, _ time.Time) []string {
 	daysMonth, daysSummer, daysTarget := CountdownTargets(now)
-	return []string{
-		fmt.Sprintf("End of month: %d days", daysMonth),
-		fmt.Sprintf("Next summer: %d days", daysSummer),
-		fmt.Sprintf("30 Sep 2028: %d days", daysTarget),
-		fmt.Sprintf("Updated: %s", lastFetch.Format("2006-01-02")),
+	daysQuarter := DaysUntil(endOfQuarter(now))
+	qLabel := quarterLabel(now)
+
+	items := []entry{
+		{label: "End of month", value: fmt.Sprintf("%d days", daysMonth)},
+		{label: fmt.Sprintf("End of %s", qLabel), value: fmt.Sprintf("%d days", daysQuarter)},
+		{label: "Next summer", value: fmt.Sprintf("%d days", daysSummer)},
+		{label: "30 Sep 2028", value: fmt.Sprintf("%d days", daysTarget)},
 	}
+
+	maxLabel := 0
+	maxValue := 0
+	for _, item := range items {
+		if len(item.label) > maxLabel {
+			maxLabel = len(item.label)
+		}
+		if len(item.value) > maxValue {
+			maxValue = len(item.value)
+		}
+	}
+
+	lines := make([]string, 0, len(items))
+	for _, item := range items {
+		lines = append(lines, fmt.Sprintf("%-*s %-*s", maxLabel, item.label, maxValue, item.value))
+	}
+
+	return lines
 }
