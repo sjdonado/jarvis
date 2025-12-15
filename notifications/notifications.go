@@ -22,6 +22,10 @@ func quarterLabel(t time.Time) string {
 	return fmt.Sprintf("Q%d", quarter)
 }
 
+func monthAbbrev(t time.Time) string {
+	return t.Format("Jan")
+}
+
 func DaysUntil(target time.Time) int {
 	now := time.Now()
 	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
@@ -58,9 +62,10 @@ func BuildLines(now time.Time, _ time.Time) []string {
 	daysMonth, daysSummer, daysTarget := CountdownTargets(now)
 	daysQuarter := DaysUntil(endOfQuarter(now))
 	qLabel := quarterLabel(now)
+	monthLabel := monthAbbrev(now)
 
 	items := []entry{
-		{label: "End of month", value: fmt.Sprintf("%d days", daysMonth)},
+		{label: fmt.Sprintf("End of %s", monthLabel), value: fmt.Sprintf("%d days", daysMonth)},
 		{label: fmt.Sprintf("End of %s", qLabel), value: fmt.Sprintf("%d days", daysQuarter)},
 		{label: "Next summer", value: fmt.Sprintf("%d days", daysSummer)},
 		{label: "30 Sep 2028", value: fmt.Sprintf("%d days", daysTarget)},
