@@ -18,7 +18,8 @@ docker buildx build --platform linux/arm/v6 -t jarvis .; and set cid (docker cre
 ```
 
 Deploy
-```
+```sh
+# stop service before copying sudo systemctl stop jarvis.service, then start it again
 scp ./jarvis sjdonado@pizero.local:~/jarvis
 ```
 

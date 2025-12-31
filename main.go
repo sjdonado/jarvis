@@ -17,7 +17,7 @@ const (
 	defaultFontSize  = 16
 	defaultInterval  = 15 * time.Second
 	quoteRefreshHour = 0
-	quotesCachePath  = "quotes.json"
+	quotesquotesPath = "quotes.json"
 	screenHeightPx   = 250
 	screenWidthPx    = 122
 	topMargin        = 2
@@ -185,7 +185,9 @@ func main() {
 			}
 			showQuote = !showQuote
 		case <-refreshQuotesTimer.C:
-			quotesManager.Refresh()
+			if err := quotesManager.Refresh(); err != nil {
+				fmt.Fprintf(os.Stderr, "Failed to refresh quotes: %v\n", err)
+			}
 			q = quotesManager.Next()
 			refreshQuotesTimer.Reset(time.Until(quotes.NextDailyAtHour(quoteRefreshHour)))
 		}
