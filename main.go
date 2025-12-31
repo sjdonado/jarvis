@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"strings"
@@ -137,31 +136,13 @@ func prepareLines(q quotes.Quote, preferredHeight int) (lines []string, font fon
 	return wrapped, f
 }
 
-func nextDailyAtHour(hour int) time.Time {
-	t := time.Now()
-	y, m, d := t.Date()
-	loc := t.Location()
-
-	refreshHour := hour % 24
-	if refreshHour < 0 {
-		refreshHour += 24
-	}
-
-	candidate := time.Date(y, m, d, refreshHour, 0, 0, 0, loc)
-	if !t.Before(candidate) {
-		candidate = candidate.Add(24 * time.Hour)
-	}
-	log.Printf("Next quote refresh scheduled at %s", candidate.Format(time.RFC3339))
-	return candidate
-}
-
 func main() {
-	rotator, err := quotes.NewRotatorFromCache()
+	quotesManager, err := quotes.NewManagerFromCache()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load quotes: %v\n", err)
-		rotator = quotes.NewRotator([]quotes.Quote{{Quote: "No quotes available", Author: ""}})
+		quotesManager = quotes.NewManager([]quotes.Quote{{ID: 1, Quote: "No quotes available", Author: ""}})
 	}
-	q := rotator.NextQuote()
+	q := quotesManager.Next()
 
 	if err := screen.TurnOn(); err != nil {
 		fmt.Fprintf(os.Stderr, "Turn on failed: %v\n", err)
@@ -176,7 +157,7 @@ func main() {
 	ticker := time.NewTicker(defaultInterval)
 	defer ticker.Stop()
 
-	refreshQuotesTimer := time.NewTimer(time.Until(nextDailyAtHour(quoteRefreshHour)))
+	refreshQuotesTimer := time.NewTimer(time.Until(quotes.NextDailyAtHour(quoteRefreshHour)))
 	defer refreshQuotesTimer.Stop()
 
 	if err := screen.Paint([]string{"Welcome :)"}, defaultFontSize); err != nil {
@@ -197,17 +178,16 @@ func main() {
 					fmt.Fprintf(os.Stderr, "Paint failed: %v\n", err)
 				}
 			} else {
-				lines := notifications.BuildLines(time.Now(), rotator.LastFetch)
+				lines := notifications.BuildLines(time.Now(), quotesManager.LastFetch)
 				if err := screen.Paint(lines, defaultFontSize); err != nil {
 					fmt.Fprintf(os.Stderr, "Paint failed: %v\n", err)
 				}
 			}
 			showQuote = !showQuote
 		case <-refreshQuotesTimer.C:
-			rotator.Refresh()
-			q = rotator.NextQuote()
-			log.Printf("Quote refreshed at %s: %q — %s", time.Now().Format(time.RFC3339), q.Quote, q.Author)
-			refreshQuotesTimer.Reset(time.Until(nextDailyAtHour(quoteRefreshHour)))
+			quotesManager.Refresh()
+			q = quotesManager.Next()
+			refreshQuotesTimer.Reset(time.Until(quotes.NextDailyAtHour(quoteRefreshHour)))
 		}
 	}
 }
