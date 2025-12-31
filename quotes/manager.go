@@ -155,7 +155,7 @@ func (qm *Manager) shouldRefresh() bool {
 	if qm.lastRefresh.IsZero() {
 		return true
 	}
-	return time.Since(qm.lastRefresh) >= refreshInterval
+	return time.Since(qm.lastRefresh) >= refreshInterval-refreshGrace
 }
 
 func (qm *Manager) shouldAdvance() bool {

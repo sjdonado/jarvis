@@ -10,6 +10,7 @@ import (
 const (
 	localStoragePath = "local_storage.json"
 	refreshInterval  = 24 * time.Hour
+	refreshGrace     = time.Minute
 )
 
 type localStorage struct {
