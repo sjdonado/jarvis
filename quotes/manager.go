@@ -117,7 +117,9 @@ func (qm *Manager) Refresh() error {
 	if fi, err := os.Stat(quotesPath); err == nil {
 		qm.LastFetch = fi.ModTime()
 	}
-	qm.lastRefresh = time.Now()
+	now := time.Now()
+	qm.lastRefresh = now
+	qm.lastNext = now
 
 	if qm.visited == nil {
 		qm.visited = make(map[int]struct{})
