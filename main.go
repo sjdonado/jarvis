@@ -16,7 +16,6 @@ import (
 const (
 	defaultFontSize  = 16
 	defaultInterval  = 15 * time.Second
-	quoteRefreshHour = 0
 	quotesquotesPath = "quotes.json"
 	screenHeightPx   = 250
 	screenWidthPx    = 122
@@ -157,9 +156,6 @@ func main() {
 	ticker := time.NewTicker(defaultInterval)
 	defer ticker.Stop()
 
-	refreshQuotesTimer := time.NewTimer(time.Until(quotes.NextDailyAtHour(quoteRefreshHour)))
-	defer refreshQuotesTimer.Stop()
-
 	if err := screen.Paint([]string{"Welcome :)"}, defaultFontSize); err != nil {
 		fmt.Fprintf(os.Stderr, "Paint failed: %v\n", err)
 	}
@@ -172,6 +168,13 @@ func main() {
 			time.Sleep(4 * time.Second)
 			return
 		case <-ticker.C:
+			// Check if we need to refresh quotes (past midnight)
+			if err := quotesManager.Refresh(); err != nil {
+				fmt.Fprintf(os.Stderr, "Failed to refresh quotes: %v\n", err)
+			}
+			// Check if we need to advance to next quote
+			q = quotesManager.Next()
+
 			if showQuote {
 				lines, chosenFont := prepareLines(q, defaultFontSize)
 				if err := screen.Paint(lines, chosenFont.height); err != nil {
@@ -184,12 +187,6 @@ func main() {
 				}
 			}
 			showQuote = !showQuote
-		case <-refreshQuotesTimer.C:
-			if err := quotesManager.Refresh(); err != nil {
-				fmt.Fprintf(os.Stderr, "Failed to refresh quotes: %v\n", err)
-			}
-			q = quotesManager.Next()
-			refreshQuotesTimer.Reset(time.Until(quotes.NextDailyAtHour(quoteRefreshHour)))
 		}
 	}
 }

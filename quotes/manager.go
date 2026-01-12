@@ -101,7 +101,7 @@ func (qm *Manager) Next() Quote {
 	return chosen
 }
 
-// Refresh reloads quotes from cache/endpoint at most once per 24h and keeps the visit history.
+// Refresh reloads quotes from cache/endpoint once per day and keeps the visit history.
 func (qm *Manager) Refresh() error {
 	if !qm.shouldRefresh() {
 		return nil
@@ -117,9 +117,7 @@ func (qm *Manager) Refresh() error {
 	if fi, err := os.Stat(quotesPath); err == nil {
 		qm.LastFetch = fi.ModTime()
 	}
-	now := time.Now()
-	qm.lastRefresh = now
-	qm.lastNext = now
+	qm.lastRefresh = time.Now()
 
 	if qm.visited == nil {
 		qm.visited = make(map[int]struct{})
@@ -157,31 +155,18 @@ func (qm *Manager) shouldRefresh() bool {
 	if qm.lastRefresh.IsZero() {
 		return true
 	}
-	return time.Since(qm.lastRefresh) >= refreshInterval-refreshGrace
+	now := time.Now()
+	lastY, lastM, lastD := qm.lastRefresh.Date()
+	nowY, nowM, nowD := now.Date()
+	return lastY != nowY || lastM != nowM || lastD != nowD
 }
 
 func (qm *Manager) shouldAdvance() bool {
 	if qm.lastNext.IsZero() {
 		return true
 	}
-	return time.Since(qm.lastNext) >= refreshInterval
-}
-
-// NextDailyAtHour returns the next local time at the specified hour.
-func NextDailyAtHour(hour int) time.Time {
-	t := time.Now()
-	y, m, d := t.Date()
-	loc := t.Location()
-
-	refreshHour := hour % 24
-	if refreshHour < 0 {
-		refreshHour += 24
-	}
-
-	candidate := time.Date(y, m, d, refreshHour, 0, 0, 0, loc)
-	if !t.Before(candidate) {
-		candidate = candidate.Add(refreshInterval)
-	}
-	log.Printf("Next quote refresh scheduled at %s", candidate.Format(time.RFC3339))
-	return candidate
+	now := time.Now()
+	lastY, lastM, lastD := qm.lastNext.Date()
+	nowY, nowM, nowD := now.Date()
+	return lastY != nowY || lastM != nowM || lastD != nowD
 }
